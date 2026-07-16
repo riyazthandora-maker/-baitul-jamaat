@@ -52,7 +52,13 @@ export async function proxy(request: NextRequest) {
 
   if (masjidCodeMatch) {
     const code = masjidCodeMatch[1].toUpperCase();
-    const { data: masjid } = await supabase
+    // Use service role to bypass RLS — anon key has no public read policy on masjids
+    const serviceSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => [], setAll: () => {} } }
+    );
+    const { data: masjid } = await serviceSupabase
       .from("masjids")
       .select("active")
       .eq("masjid_code", code)
@@ -107,10 +113,15 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Helper: check if this admin/member's masjid is active
+  // Helper: check if this admin/member's masjid is active (service role bypasses RLS)
   async function checkMasjidActive() {
     if (!masjidId) return true;
-    const { data } = await supabase
+    const serviceSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { cookies: { getAll: () => [], setAll: () => {} } }
+    );
+    const { data } = await serviceSupabase
       .from("masjids")
       .select("active")
       .eq("id", masjidId)
