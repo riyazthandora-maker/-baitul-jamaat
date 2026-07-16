@@ -1,0 +1,66 @@
+{
+  "app": {
+    "name": "Baitul Jamaat",
+    "tagline": "Masjid Membership & Donation Management"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "masjids": "Masjids",
+    "members": "Members",
+    "programs": "Programs",
+    "reports": "Reports",
+    "logout": "Log Out"
+  },
+  "auth": {
+    "login": "Log In",
+    "phone": "Phone Number",
+    "password": "Password",
+    "showPassword": "Show password",
+    "loginButton": "Log In",
+    "forgotPassword": "Forgot password? Contact your admin.",
+    "changePassword": "Change Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "changePasswordButton": "Update Password",
+    "firstLoginMessage": "For security, please set a new password before continuing."
+  },
+  "masjid": {
+    "title": "Masjids",
+    "new": "New Masjid",
+    "edit": "Edit Masjid",
+    "name": "Masjid Name",
+    "address": "Address",
+    "phone": "Phone",
+    "code": "Masjid Code",
+    "codeHint": "2–6 uppercase letters, used in member & receipt numbers",
+    "upiId": "GPay / UPI ID",
+    "location": "Location (pick on map)",
+    "active": "Active",
+    "adminName": "Admin Full Name",
+    "adminPhone": "Admin Phone (10 digits)",
+    "save": "Save Masjid",
+    "inactive": "Inactive",
+    "members": "Members",
+    "outstanding": "Outstanding"
+  },
+  "credentials": {
+    "title": "Admin Credentials (shown once — copy now)",
+    "username": "Phone / Username",
+    "password": "Temporary Password",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "close": "Done",
+    "warning": "This password will not be shown again. Copy and share it securely."
+  },
+  "inactive": {
+    "title": "Masjid Inactive",
+    "message": "This masjid is currently inactive. Please contact the administrator.",
+    "contact": "Contact Support"
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalidPhone": "Invalid phone number",
+    "serverError": "Something went wrong. Please try again.",
+    "duplicateCode": "This masjid code is already taken"
+  }
+}

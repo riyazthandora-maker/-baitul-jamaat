@@ -1,0 +1,56 @@
+@import "leaflet/dist/leaflet.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 140 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 140 20% 10%;
+    --primary: 142 66% 26%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 80% 47%;
+    --secondary-foreground: 140 20% 10%;
+    --muted: 140 10% 95%;
+    --muted-foreground: 140 10% 40%;
+    --accent: 45 80% 47%;
+    --accent-foreground: 140 20% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 140 10% 88%;
+    --input: 140 10% 88%;
+    --ring: 142 66% 26%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  /* Large touch targets for low-literacy users */
+  button,
+  [role="button"] {
+    @apply min-h-[44px];
+  }
+  input,
+  select,
+  textarea {
+    @apply min-h-[44px] text-base;
+  }
+}
+
+@layer utilities {
+  .brand-gradient {
+    background: linear-gradient(135deg, #1a6b3c 0%, #0f4023 100%);
+  }
+  .gold-text {
+    color: #c9a227;
+  }
+}
