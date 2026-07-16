@@ -17,24 +17,40 @@ export default function MapPickerInner({ lat, lng, onChange }: Props) {
   const markerRef = useRef<import("leaflet").Marker | null>(null);
 
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current) return;
+
+    // Guard against React StrictMode double-mount: Leaflet marks the container
+    // with the "leaflet-container" class after first init.
+    if (mapRef.current.classList.contains("leaflet-container")) return;
+
+    // Also guard via ref in case the class check races
+    if (mapInstanceRef.current) return;
+
+    let destroyed = false;
 
     (async () => {
       const L = (await import("leaflet")).default;
 
-      // Fix Leaflet default marker icons in bundlers
+      if (destroyed || !mapRef.current) return;
+
+      // Fix Leaflet default marker icons in webpack/turbopack bundlers
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        iconRetinaUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        shadowUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
       const initialLat = lat ?? DEFAULT_LAT;
       const initialLng = lng ?? DEFAULT_LNG;
 
-      const map = L.map(mapRef.current!).setView([initialLat, initialLng], lat ? 13 : 5);
+      const map = L.map(mapRef.current).setView(
+        [initialLat, initialLng],
+        lat ? 13 : 5
+      );
       mapInstanceRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -57,11 +73,15 @@ export default function MapPickerInner({ lat, lng, onChange }: Props) {
     })();
 
     return () => {
-      mapInstanceRef.current?.remove();
-      mapInstanceRef.current = null;
+      destroyed = true;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
       markerRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Props are captured once on mount — intentional
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

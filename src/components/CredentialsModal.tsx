@@ -12,9 +12,10 @@ interface Credentials {
 
 interface Props {
   credentials: Credentials;
+  onDone?: () => void;
 }
 
-export default function CredentialsModal({ credentials }: Props) {
+export default function CredentialsModal({ credentials, onDone }: Props) {
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
   const router = useRouter();
@@ -100,7 +101,7 @@ export default function CredentialsModal({ credentials }: Props) {
             Copy All
           </button>
           <button
-            onClick={() => router.push("/superadmin/masjids")}
+            onClick={() => onDone ? onDone() : router.push("/superadmin/masjids")}
             className="flex-1 bg-brand-green text-white rounded-lg py-3 text-sm font-medium hover:bg-brand-green-dark transition-colors flex items-center justify-center gap-2"
           >
             <X className="w-4 h-4" />

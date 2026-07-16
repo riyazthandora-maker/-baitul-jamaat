@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Masjid } from "@/types/database";
 import { notFound } from "next/navigation";
 import MasjidForm from "@/components/MasjidForm";
+import ResetPasswordButton from "@/components/ResetPasswordButton";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -34,6 +35,7 @@ export default async function EditMasjidPage({
         </h1>
       </div>
       <MasjidForm initialData={masjid} isNew={false} />
+      <ResetPasswordButton masjidId={masjid.id} />
     </div>
   );
 }
