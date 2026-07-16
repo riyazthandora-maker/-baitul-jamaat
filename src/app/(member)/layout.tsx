@@ -17,3 +17,4 @@ export default async function MemberLayout({
 
   return <>{children}</>;
 }
+

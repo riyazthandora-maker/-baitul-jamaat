@@ -111,10 +111,11 @@ export async function POST(req: NextRequest) {
   if (authError || !authUser.user) {
     // Rollback masjid creation
     await supabase.from("masjids").delete().eq("id", masjid.id);
-    return NextResponse.json(
-      { error: authError?.message ?? "Failed to create admin account" },
-      { status: 500 }
-    );
+    const msg =
+      authError?.message?.toLowerCase().includes("already registered")
+        ? `Phone ${validated.admin_phone} is already registered as an admin in another masjid. Use a different phone number.`
+        : (authError?.message ?? "Failed to create admin account");
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
   // Create profile row

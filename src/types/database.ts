@@ -106,6 +106,8 @@ export interface Database {
           qualification: string | null;
           phone: string;
           email: string | null;
+          duplicate_flag: string | null;
+          duplicate_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -125,6 +127,8 @@ export interface Database {
           qualification?: string | null;
           phone: string;
           email?: string | null;
+          duplicate_flag?: string | null;
+          duplicate_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -144,6 +148,8 @@ export interface Database {
           qualification?: string | null;
           phone?: string;
           email?: string | null;
+          duplicate_flag?: string | null;
+          duplicate_reason?: string | null;
         };
         Relationships: [];
       };

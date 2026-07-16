@@ -65,9 +65,9 @@ Work in this sequence. Commit after each step. Do not skip ahead.
 
 - [x] **Step 1** — Scaffold Next.js + Supabase, schema + migrations + RLS, auth for 3 roles
 - [x] **Step 2** — Super admin module (masjid CRUD + map picker + admin generation + active gate)
-- [ ] **Step 3** — Self-registration flow + QR code + storage (manual, no AI yet)
-- [ ] **Step 4** — Gemini OCR + duplicate detection
-- [ ] **Step 5** — Approval flow + member credentials + member portal (balance view + GPay QR)
+- [x] **Step 3** — Self-registration flow + QR code + storage (manual, no AI yet)
+- [x] **Step 4** — Gemini OCR + duplicate detection
+- [x] **Step 5** — Approval flow + member credentials + member portal (balance view + GPay QR)
 - [ ] **Step 6** — Revenue programs + enrollment + billing cron + ledger
 - [ ] **Step 7** — Receipts + PDFs + audit trail + monthly statement job + emails
 - [ ] **Step 8** — Family mapping + Gemini suggestions
