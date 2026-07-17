@@ -97,6 +97,7 @@ export interface Database {
           status: MemberStatus;
           photo_url: string | null;
           id_doc_url: string | null;
+          id_doc_back_url: string | null;
           id_type: string | null;
           id_last4: string | null;
           full_name: string;
@@ -118,6 +119,7 @@ export interface Database {
           status?: MemberStatus;
           photo_url?: string | null;
           id_doc_url?: string | null;
+          id_doc_back_url?: string | null;
           id_type?: string | null;
           id_last4?: string | null;
           full_name: string;
@@ -139,6 +141,7 @@ export interface Database {
           status?: MemberStatus;
           photo_url?: string | null;
           id_doc_url?: string | null;
+          id_doc_back_url?: string | null;
           id_type?: string | null;
           id_last4?: string | null;
           full_name?: string;

@@ -51,74 +51,72 @@ export async function POST(
     const memberId = crypto.randomUUID();
     const folder = `${masjid.id}/${memberId}`;
 
-    // Upload ID document (mandatory)
-    const idDocFile = formData.get("id_doc") as File | null;
-    let id_doc_url: string | null = null;
+    // Ensure bucket exists (creates it if migration 005 wasn't run)
+    await supabase.storage.createBucket("member-documents", { public: false }).catch(() => {});
 
-    if (idDocFile && idDocFile.size > 0) {
-      if (idDocFile.size > 5 * 1024 * 1024) {
-        return NextResponse.json(
-          { error: "ID document exceeds 5 MB limit" },
-          { status: 400 }
-        );
-      }
-      const ext = idDocFile.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const bytes = await idDocFile.arrayBuffer();
-      const { error: uploadErr } = await supabase.storage
+    async function uploadFile(file: File, path: string): Promise<string | null> {
+      const bytes = await file.arrayBuffer();
+      const { error } = await supabase.storage
         .from("member-documents")
-        .upload(`${folder}/id_doc.${ext}`, bytes, {
-          contentType: idDocFile.type,
-          upsert: true,
-        });
-      if (uploadErr) {
-        return NextResponse.json(
-          { error: "Failed to upload ID document" },
-          { status: 500 }
-        );
+        .upload(path, bytes, { contentType: file.type, upsert: true });
+      if (error) {
+        console.error("[Register] upload error:", path, error.message);
+        return null;
       }
-      id_doc_url = `${folder}/id_doc.${ext}`;
-    } else {
-      return NextResponse.json(
-        { error: "ID document is required" },
-        { status: 400 }
-      );
+      return path;
+    }
+
+    function ext(file: File) {
+      return file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    }
+
+    // Upload ID document front (mandatory)
+    const idDocFront = formData.get("id_doc_front") as File | null;
+    if (!idDocFront || idDocFront.size === 0) {
+      return NextResponse.json({ error: "Front of ID document is required" }, { status: 400 });
+    }
+    if (idDocFront.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "ID document exceeds 5 MB limit" }, { status: 400 });
+    }
+    const id_doc_url = await uploadFile(idDocFront, `${folder}/id_doc_front.${ext(idDocFront)}`);
+    if (!id_doc_url) {
+      return NextResponse.json({ error: "Failed to upload ID document front" }, { status: 500 });
+    }
+
+    // Upload ID document back (optional)
+    const idDocBack = formData.get("id_doc_back") as File | null;
+    let id_doc_back_url: string | null = null;
+    if (idDocBack && idDocBack.size > 0 && idDocBack.size <= 5 * 1024 * 1024) {
+      id_doc_back_url = await uploadFile(idDocBack, `${folder}/id_doc_back.${ext(idDocBack)}`);
     }
 
     // Upload photo (optional)
     const photoFile = formData.get("photo") as File | null;
     let photo_url: string | null = null;
-
     if (photoFile && photoFile.size > 0) {
-      const ext = photoFile.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const bytes = await photoFile.arrayBuffer();
-      const { error: photoErr } = await supabase.storage
-        .from("member-documents")
-        .upload(`${folder}/photo.${ext}`, bytes, {
-          contentType: photoFile.type,
-          upsert: true,
-        });
-      if (!photoErr) {
-        photo_url = `${folder}/photo.${ext}`;
-      }
+      photo_url = await uploadFile(photoFile, `${folder}/photo.${ext(photoFile)}`);
     }
 
     // Duplicate detection — fetch existing members of this masjid
     const { data: existingMembers } = await supabase
       .from("members")
-      .select("phone, full_name, dob, member_number")
+      .select("phone, full_name, dob, address, member_number")
       .eq("masjid_id", masjid.id)
       .in("status", ["active", "pending"]);
 
+    // Gemini name + address fuzzy match
     const dupResult = await detectDuplicates(
       {
         phone: parsed.data.phone,
         full_name: parsed.data.full_name,
         dob: parsed.data.dob ?? null,
+        address: parsed.data.address ?? null,
       },
       (existingMembers ?? []).map((m) => ({
         phone: m.phone,
         full_name: m.full_name,
         dob: m.dob,
+        address: m.address,
         member_number: m.member_number,
       }))
     );
@@ -151,6 +149,7 @@ export async function POST(
       qualification: parsed.data.qualification,
       photo_url,
       id_doc_url,
+      id_doc_back_url,
       duplicate_flag: dupResult.classification,
       duplicate_reason: dupResult.reason,
     });

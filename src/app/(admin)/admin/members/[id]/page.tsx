@@ -23,21 +23,20 @@ export default async function MemberReviewPage({
 
   // Get signed URLs for documents
   let idDocSignedUrl: string | null = null;
+  let idDocBackSignedUrl: string | null = null;
   let photoSignedUrl: string | null = null;
 
-  if (member.id_doc_url) {
+  const signUrl = async (path: string) => {
     const { data } = await adminSupabase.storage
       .from("member-documents")
-      .createSignedUrl(member.id_doc_url, 3600);
-    idDocSignedUrl = data?.signedUrl ?? null;
-  }
+      .createSignedUrl(path, 3600);
+    return data?.signedUrl ?? null;
+  };
 
-  if (member.photo_url) {
-    const { data } = await adminSupabase.storage
-      .from("member-documents")
-      .createSignedUrl(member.photo_url, 3600);
-    photoSignedUrl = data?.signedUrl ?? null;
-  }
+  if (member.id_doc_url) idDocSignedUrl = await signUrl(member.id_doc_url);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((member as any).id_doc_back_url) idDocBackSignedUrl = await signUrl((member as any).id_doc_back_url);
+  if (member.photo_url) photoSignedUrl = await signUrl(member.photo_url);
 
   const fields: Array<{ label: string; value: string | null | undefined }> = [
     { label: "Full Name", value: member.full_name },
@@ -118,31 +117,56 @@ export default async function MemberReviewPage({
           </dl>
         </div>
 
-        {/* Right: Document Image */}
+        {/* Right: Document Images */}
         <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-700 border-b pb-2">
             Uploaded Document
           </h2>
           {idDocSignedUrl ? (
-            idDocSignedUrl.toLowerCase().includes(".pdf") ? (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500">PDF document uploaded</p>
-                <a
-                  href={idDocSignedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center bg-brand-green text-white py-3 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-                >
-                  Open PDF Document
-                </a>
+            <div className="space-y-4">
+              {/* Front */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Front</p>
+                {idDocSignedUrl.toLowerCase().includes(".pdf") ? (
+                  <a
+                    href={idDocSignedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full text-center bg-brand-green text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                  >
+                    Open PDF (Front)
+                  </a>
+                ) : (
+                  <img
+                    src={idDocSignedUrl}
+                    alt="ID Document Front"
+                    className="w-full rounded-lg border border-gray-200 object-contain max-h-64"
+                  />
+                )}
               </div>
-            ) : (
-              <img
-                src={idDocSignedUrl}
-                alt="ID Document"
-                className="w-full rounded-lg border border-gray-200 object-contain max-h-96"
-              />
-            )
+              {/* Back (if present) */}
+              {idDocBackSignedUrl && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Back</p>
+                  {idDocBackSignedUrl.toLowerCase().includes(".pdf") ? (
+                    <a
+                      href={idDocBackSignedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full text-center bg-brand-green text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                    >
+                      Open PDF (Back)
+                    </a>
+                  ) : (
+                    <img
+                      src={idDocBackSignedUrl}
+                      alt="ID Document Back"
+                      className="w-full rounded-lg border border-gray-200 object-contain max-h-64"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-gray-400">No document uploaded</p>
           )}

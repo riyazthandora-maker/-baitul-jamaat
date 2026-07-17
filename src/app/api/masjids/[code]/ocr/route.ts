@@ -1,50 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractIdDocumentData } from "@/lib/gemini";
 
-const SUPPORTED_IMAGE_TYPES = [
+const SUPPORTED_TYPES = [
   "image/jpeg",
   "image/jpg",
   "image/png",
   "image/webp",
+  "application/pdf",
 ];
+
+async function fileToBase64(file: File) {
+  const bytes = await file.arrayBuffer();
+  return Buffer.from(bytes).toString("base64");
+}
+
+function resolveMime(file: File) {
+  return SUPPORTED_TYPES.includes(file.type) ? file.type : "image/jpeg";
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
-  // params consumed only to match route signature; masjid check done by middleware
   await params;
 
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const front = formData.get("front") as File | null;
+    const back = formData.get("back") as File | null;
 
-    if (!file || file.size === 0) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!front || front.size === 0) {
+      return NextResponse.json({ error: "Front side is required" }, { status: 400 });
+    }
+    if (front.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "Front image exceeds 5 MB" }, { status: 400 });
+    }
+    if (back && back.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "Back image exceeds 5 MB" }, { status: 400 });
     }
 
-    if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
-      // PDFs and unsupported types: return empty result, client falls back to manual
-      return NextResponse.json({
-        ocr: null,
-        message: "PDF or unsupported type — fill manually",
-      });
+    const frontBase64 = await fileToBase64(front);
+    const frontMime = resolveMime(front);
+
+    let backBase64: string | undefined;
+    let backMime: string | undefined;
+    if (back && back.size > 0) {
+      backBase64 = await fileToBase64(back);
+      backMime = resolveMime(back);
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: "File too large (max 5 MB)" },
-        { status: 400 }
-      );
-    }
-
-    const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
-
-    const extracted = await extractIdDocumentData(base64, file.type);
+    const extracted = await extractIdDocumentData(frontBase64, frontMime, backBase64, backMime);
     return NextResponse.json({ ocr: extracted });
   } catch (err) {
-    console.error("OCR error:", err);
+    console.error("[OCR] route error:", err);
     return NextResponse.json({ ocr: null, error: "OCR failed" });
   }
 }

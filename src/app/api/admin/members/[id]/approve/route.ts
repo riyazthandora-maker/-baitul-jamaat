@@ -49,7 +49,7 @@ export async function POST(
 
   // Generate credentials
   const tempPassword = generateTempPassword(10);
-  const email = `${member.phone}@bj.local`;
+  const email = `${member.id}@bj.local`;
 
   // Create Supabase Auth user
   const { data: authUser, error: authErr } =

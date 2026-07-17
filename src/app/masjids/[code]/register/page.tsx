@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
   Camera,
@@ -12,6 +12,7 @@ import {
   Phone,
   BookOpen,
   CreditCard,
+  Info,
 } from "lucide-react";
 
 type OcrResult = {
@@ -33,11 +34,15 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrDone, setOcrDone] = useState(false);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const personalSectionRef = useRef<HTMLElement>(null);
 
   // File refs
-  const idDocRef = useRef<HTMLInputElement>(null);
+  const idFrontRef = useRef<HTMLInputElement>(null);
+  const idBackRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
-  const [idDocFile, setIdDocFile] = useState<File | null>(null);
+  const [idFrontFile, setIdFrontFile] = useState<File | null>(null);
+  const [idBackFile, setIdBackFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
@@ -55,7 +60,6 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    // Fetch masjid name to display
     fetch(`/api/masjids/${code}/info`)
       .then((r) => r.json())
       .then((d) => setMasjidName(d.name ?? code))
@@ -66,18 +70,15 @@ export default function RegisterPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  async function handleIdDocChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIdDocFile(file);
-    setOcrDone(false);
-
-    // Trigger OCR for images only
-    if (file.type.startsWith("image/")) {
+  const runOcr = useCallback(
+    async (front: File, back: File | null) => {
       setOcrLoading(true);
+      setOcrDone(false);
+      setOcrError(null);
       try {
         const fd = new FormData();
-        fd.append("file", file);
+        fd.append("front", front);
+        if (back) fd.append("back", back);
         const res = await fetch(`/api/masjids/${code}/ocr`, {
           method: "POST",
           body: fd,
@@ -95,12 +96,34 @@ export default function RegisterPage() {
             id_last4: ocr?.id_last4 ?? prev.id_last4,
           }));
           setOcrDone(true);
+          setTimeout(() => {
+            personalSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 100);
+        } else {
+          setOcrError("Could not read the document automatically. Please fill in your details manually below.");
         }
       } catch {
-        // OCR failed silently — user fills manually
+        setOcrError("Document scan failed. Please fill in your details manually below.");
       } finally {
         setOcrLoading(false);
       }
+    },
+    [code]
+  );
+
+  async function handleFrontChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIdFrontFile(file);
+    await runOcr(file, idBackFile);
+  }
+
+  async function handleBackChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIdBackFile(file);
+    if (idFrontFile) {
+      await runOcr(idFrontFile, file);
     }
   }
 
@@ -115,8 +138,8 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!idDocFile) {
-      setError("Please upload your ID document (Aadhaar or Passport).");
+    if (!idFrontFile) {
+      setError("Please upload the front side of your ID document.");
       return;
     }
     setError(null);
@@ -125,7 +148,8 @@ export default function RegisterPage() {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      fd.append("id_doc", idDocFile);
+      fd.append("id_doc_front", idFrontFile);
+      if (idBackFile) fd.append("id_doc_back", idBackFile);
       if (photoFile) fd.append("photo", photoFile);
 
       const res = await fetch(`/api/masjids/${code}/register`, {
@@ -210,67 +234,111 @@ export default function RegisterPage() {
           </div>
         </section>
 
-        {/* ID Document */}
+        {/* ID Document — two slots */}
         <section className="bg-white rounded-xl shadow-sm p-5 space-y-4">
           <h2 className="font-semibold text-brand-green flex items-center gap-2 text-lg">
             <CreditCard className="w-5 h-5" /> Identity Document{" "}
             <span className="text-red-500">*</span>
           </h2>
           <p className="text-sm text-gray-500">
-            Upload Aadhaar or Passport (JPG, PNG, or PDF · max 5 MB)
+            Upload Aadhaar, Passport, or Voter ID (JPG, PNG, PDF · max 5 MB each).
+            Adding the back side improves address extraction.
           </p>
 
-          <input
-            ref={idDocRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.pdf"
-            className="hidden"
-            onChange={handleIdDocChange}
-          />
+          <input ref={idFrontRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" className="hidden" onChange={handleFrontChange} />
+          <input ref={idBackRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" className="hidden" onChange={handleBackChange} />
 
-          <button
-            type="button"
-            onClick={() => idDocRef.current?.click()}
-            className={`w-full border-2 border-dashed rounded-xl py-6 flex flex-col items-center gap-2 transition-colors ${
-              idDocFile
-                ? "border-brand-green bg-brand-green/5"
-                : "border-gray-300 hover:border-brand-green"
-            }`}
-          >
-            {idDocFile ? (
-              <>
-                <CheckCircle className="w-8 h-8 text-brand-green" />
-                <span className="text-sm text-brand-green font-medium">
-                  {idDocFile.name}
-                </span>
-                <span className="text-xs text-gray-400">Tap to change</span>
-              </>
-            ) : (
-              <>
-                <Upload className="w-8 h-8 text-gray-400" />
-                <span className="text-sm text-gray-500">
-                  Tap to upload document
-                </span>
-              </>
-            )}
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Front slot */}
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-600 text-center">
+                Front side <span className="text-red-500">*</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => idFrontRef.current?.click()}
+                className={`w-full border-2 border-dashed rounded-xl py-5 flex flex-col items-center gap-1.5 transition-colors text-center ${
+                  idFrontFile
+                    ? "border-brand-green bg-brand-green/5"
+                    : "border-gray-300 hover:border-brand-green"
+                }`}
+              >
+                {idFrontFile ? (
+                  <>
+                    <CheckCircle className="w-7 h-7 text-brand-green" />
+                    <span className="text-xs text-brand-green font-medium leading-tight px-1 break-all">
+                      {idFrontFile.name.length > 18
+                        ? idFrontFile.name.slice(0, 15) + "…"
+                        : idFrontFile.name}
+                    </span>
+                    <span className="text-xs text-gray-400">Tap to change</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-7 h-7 text-gray-400" />
+                    <span className="text-xs text-gray-500">Upload front</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Back slot */}
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-600 text-center">
+                Back side{" "}
+                <span className="text-gray-400 font-normal">(optional)</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => idBackRef.current?.click()}
+                className={`w-full border-2 border-dashed rounded-xl py-5 flex flex-col items-center gap-1.5 transition-colors text-center ${
+                  idBackFile
+                    ? "border-brand-green bg-brand-green/5"
+                    : "border-gray-300 hover:border-brand-green"
+                }`}
+              >
+                {idBackFile ? (
+                  <>
+                    <CheckCircle className="w-7 h-7 text-brand-green" />
+                    <span className="text-xs text-brand-green font-medium leading-tight px-1 break-all">
+                      {idBackFile.name.length > 18
+                        ? idBackFile.name.slice(0, 15) + "…"
+                        : idBackFile.name}
+                    </span>
+                    <span className="text-xs text-gray-400">Tap to change</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-7 h-7 text-gray-300" />
+                    <span className="text-xs text-gray-400">Upload back</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
           {ocrLoading && (
-            <div className="flex items-center gap-2 text-brand-green text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Reading document automatically…
+            <div className="flex items-center gap-2 text-brand-green text-sm bg-brand-green/5 rounded-lg px-3 py-2">
+              <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+              Reading your document — please wait…
             </div>
           )}
           {ocrDone && (
-            <div className="flex items-center gap-2 text-brand-green text-sm">
-              <CheckCircle className="w-4 h-4" />
-              Details pre-filled from document — please review below
+            <div className="flex items-center gap-2 text-green-700 text-sm bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              Details filled from document — scroll down to review and edit
+            </div>
+          )}
+          {ocrError && (
+            <div className="flex items-start gap-2 text-amber-700 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              {ocrError}
             </div>
           )}
         </section>
 
         {/* Personal Details */}
-        <section className="bg-white rounded-xl shadow-sm p-5 space-y-4">
+        <section ref={personalSectionRef} className="bg-white rounded-xl shadow-sm p-5 space-y-4">
           <h2 className="font-semibold text-brand-green flex items-center gap-2 text-lg">
             <User className="w-5 h-5" /> Personal Details
           </h2>
