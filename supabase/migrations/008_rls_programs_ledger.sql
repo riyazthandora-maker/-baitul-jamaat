@@ -10,37 +10,48 @@ ALTER TABLE receipts    ENABLE ROW LEVEL SECURITY;
 -- ---------------------------------------------------------------
 -- programs
 -- ---------------------------------------------------------------
-CREATE POLICY "super_admin_programs_all" ON programs FOR ALL TO authenticated
-  USING (auth_role() = 'super_admin') WITH CHECK (auth_role() = 'super_admin');
+CREATE POLICY "super_admin: full access to programs"
+  ON programs FOR ALL
+  USING (auth_role() = 'super_admin')
+  WITH CHECK (auth_role() = 'super_admin');
 
-CREATE POLICY "masjid_admin_programs_all" ON programs FOR ALL TO authenticated
-  USING (auth_role() = 'masjid_admin' AND masjid_id::text = auth_masjid_id())
-  WITH CHECK (auth_role() = 'masjid_admin' AND masjid_id::text = auth_masjid_id());
+CREATE POLICY "masjid_admin: full access to own programs"
+  ON programs FOR ALL
+  USING (auth_role() = 'masjid_admin' AND masjid_id = auth_masjid_id())
+  WITH CHECK (auth_role() = 'masjid_admin' AND masjid_id = auth_masjid_id());
 
-CREATE POLICY "member_read_programs" ON programs FOR SELECT TO authenticated
-  USING (auth_role() = 'member' AND masjid_id::text = auth_masjid_id());
+CREATE POLICY "member: read own masjid programs"
+  ON programs FOR SELECT
+  USING (auth_role() = 'member' AND masjid_id = auth_masjid_id());
 
 -- ---------------------------------------------------------------
 -- enrollments
 -- ---------------------------------------------------------------
-CREATE POLICY "super_admin_enrollments_all" ON enrollments FOR ALL TO authenticated
-  USING (auth_role() = 'super_admin') WITH CHECK (auth_role() = 'super_admin');
+CREATE POLICY "super_admin: full access to enrollments"
+  ON enrollments FOR ALL
+  USING (auth_role() = 'super_admin')
+  WITH CHECK (auth_role() = 'super_admin');
 
-CREATE POLICY "masjid_admin_enrollments_all" ON enrollments FOR ALL TO authenticated
-  USING (auth_role() = 'masjid_admin' AND masjid_id::text = auth_masjid_id())
-  WITH CHECK (auth_role() = 'masjid_admin' AND masjid_id::text = auth_masjid_id());
+CREATE POLICY "masjid_admin: full access to own enrollments"
+  ON enrollments FOR ALL
+  USING (auth_role() = 'masjid_admin' AND masjid_id = auth_masjid_id())
+  WITH CHECK (auth_role() = 'masjid_admin' AND masjid_id = auth_masjid_id());
 
 -- ---------------------------------------------------------------
 -- ledger
 -- ---------------------------------------------------------------
-CREATE POLICY "super_admin_ledger_all" ON ledger FOR ALL TO authenticated
-  USING (auth_role() = 'super_admin') WITH CHECK (auth_role() = 'super_admin');
+CREATE POLICY "super_admin: full access to ledger"
+  ON ledger FOR ALL
+  USING (auth_role() = 'super_admin')
+  WITH CHECK (auth_role() = 'super_admin');
 
-CREATE POLICY "masjid_admin_ledger_all" ON ledger FOR ALL TO authenticated
-  USING (auth_role() = 'masjid_admin' AND masjid_id::text = auth_masjid_id())
-  WITH CHECK (auth_role() = 'masjid_admin' AND masjid_id::text = auth_masjid_id());
+CREATE POLICY "masjid_admin: full access to own ledger"
+  ON ledger FOR ALL
+  USING (auth_role() = 'masjid_admin' AND masjid_id = auth_masjid_id())
+  WITH CHECK (auth_role() = 'masjid_admin' AND masjid_id = auth_masjid_id());
 
-CREATE POLICY "member_own_ledger" ON ledger FOR SELECT TO authenticated
+CREATE POLICY "member: read own ledger entries"
+  ON ledger FOR SELECT
   USING (
     auth_role() = 'member' AND
     member_id IN (SELECT id FROM members WHERE profile_id = auth.uid())
@@ -49,14 +60,18 @@ CREATE POLICY "member_own_ledger" ON ledger FOR SELECT TO authenticated
 -- ---------------------------------------------------------------
 -- receipts
 -- ---------------------------------------------------------------
-CREATE POLICY "super_admin_receipts_all" ON receipts FOR ALL TO authenticated
-  USING (auth_role() = 'super_admin') WITH CHECK (auth_role() = 'super_admin');
+CREATE POLICY "super_admin: full access to receipts"
+  ON receipts FOR ALL
+  USING (auth_role() = 'super_admin')
+  WITH CHECK (auth_role() = 'super_admin');
 
-CREATE POLICY "masjid_admin_receipts_all" ON receipts FOR ALL TO authenticated
-  USING (auth_role() = 'masjid_admin' AND masjid_id::text = auth_masjid_id())
-  WITH CHECK (auth_role() = 'masjid_admin' AND masjid_id::text = auth_masjid_id());
+CREATE POLICY "masjid_admin: full access to own receipts"
+  ON receipts FOR ALL
+  USING (auth_role() = 'masjid_admin' AND masjid_id = auth_masjid_id())
+  WITH CHECK (auth_role() = 'masjid_admin' AND masjid_id = auth_masjid_id());
 
-CREATE POLICY "member_own_receipts" ON receipts FOR SELECT TO authenticated
+CREATE POLICY "member: read own receipts"
+  ON receipts FOR SELECT
   USING (
     auth_role() = 'member' AND
     member_id IN (SELECT id FROM members WHERE profile_id = auth.uid())
