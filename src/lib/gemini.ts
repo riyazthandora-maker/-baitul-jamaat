@@ -4,7 +4,7 @@ const getModel = () => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+  return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 };
 
 export async function extractIdDocumentData(
@@ -52,6 +52,52 @@ Return ONLY the JSON object. No markdown, no explanation.`;
       console.error("[Gemini OCR] failed:", msg);
     }
     return null;
+  }
+}
+
+export async function suggestFamilyGroupings(
+  members: Array<{
+    id: string;
+    full_name: string;
+    dob: string | null;
+    gender: string | null;
+    address: string | null;
+  }>
+): Promise<Array<{
+  suggested_name: string;
+  head_index: number;
+  confidence: "high" | "medium" | "low";
+  confidence_note: string;
+  members: Array<{
+    index: number;
+    relationship: "head" | "husband" | "wife" | "son" | "daughter" | "father" | "mother" | "brother" | "sister" | "other";
+  }>;
+}>> {
+  if (members.length === 0) return [];
+  const model = getModel();
+  const prompt = `You are a family relationship analyst for a mosque membership system.
+
+Given these members (identified by 0-based index):
+${members.map((m, i) => `${i}. Name: ${m.full_name}, DOB: ${m.dob ?? "unknown"}, Gender: ${m.gender ?? "unknown"}, Address: ${m.address ?? "unknown"}`).join("\n")}
+
+Suggest how to group them into family units. For each family:
+- Choose the head (usually the oldest male; if none, oldest person)
+- Assign relationships relative to the head for every member
+- Suggest a family name (usually "{head's surname} Family")
+
+Return ONLY valid JSON (no markdown, no explanation):
+{"families":[{"suggested_name":"...","head_index":0,"confidence":"high","confidence_note":"brief reason","members":[{"index":0,"relationship":"head"},{"index":1,"relationship":"wife"}]}]}
+
+Relationship must be one of: head, husband, wife, son, daughter, father, mother, brother, sister, other.`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const cleaned = text.replace(/^```json\n?/, "").replace(/```\n?$/, "").trim();
+    const parsed = JSON.parse(cleaned);
+    return parsed.families ?? [];
+  } catch {
+    return [];
   }
 }
 

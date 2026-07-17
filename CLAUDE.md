@@ -70,7 +70,7 @@ Work in this sequence. Commit after each step. Do not skip ahead.
 - [x] **Step 5** — Approval flow + member credentials + member portal (balance view + GPay QR)
 - [x] **Step 6** — Revenue programs + enrollment + billing cron + ledger
 - [x] **Step 7** — Receipts + PDFs + audit trail + monthly statement job + emails
-- [ ] **Step 8** — Family mapping + Gemini suggestions
-- [ ] **Step 9** — Islamic-themed landing page, polish, seed data, README
+- [x] **Step 8** — Family mapping + Gemini suggestions
+- [x] **Step 9** — Islamic-themed landing page, polish, seed data, README
 
 Mark a step `[x]` when it is fully committed and verified against SPEC.md.

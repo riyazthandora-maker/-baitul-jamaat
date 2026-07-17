@@ -11,6 +11,8 @@ type Member = {
   member_number: string | null;
   phone: string;
   dob: string | null;
+  gender: string | null;
+  qualification: string | null;
 };
 
 type EnrollRow = { member_id: string; amount: string };
@@ -33,6 +35,8 @@ export default function EnrollPage() {
   const [search, setSearch] = useState("");
   const [minAge, setMinAge] = useState("");
   const [maxAge, setMaxAge] = useState("");
+  const [genderFilter, setGenderFilter] = useState("");
+  const [qualFilter, setQualFilter] = useState("");
   const [selected, setSelected] = useState<Map<string, EnrollRow>>(new Map());
   const [defaultAmount, setDefaultAmount] = useState<string>("0");
   const [saving, setSaving] = useState(false);
@@ -73,6 +77,10 @@ export default function EnrollPage() {
       if (minAge && age < parseInt(minAge, 10)) return false;
       if (maxAge && age > parseInt(maxAge, 10)) return false;
     }
+
+    if (genderFilter && m.gender?.toLowerCase() !== genderFilter) return false;
+
+    if (qualFilter && !m.qualification?.toLowerCase().includes(qualFilter.toLowerCase())) return false;
 
     return true;
   });
@@ -159,9 +167,9 @@ export default function EnrollPage() {
           </button>
         </div>
 
-        {/* Age filter row */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500 whitespace-nowrap">Age range:</span>
+        {/* Filter row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-gray-500 whitespace-nowrap">Age:</span>
           <input
             type="number"
             min="0"
@@ -169,7 +177,7 @@ export default function EnrollPage() {
             placeholder="Min"
             value={minAge}
             onChange={(e) => setMinAge(e.target.value)}
-            className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+            className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
           />
           <span className="text-gray-400 text-sm">–</span>
           <input
@@ -179,15 +187,32 @@ export default function EnrollPage() {
             placeholder="Max"
             value={maxAge}
             onChange={(e) => setMaxAge(e.target.value)}
-            className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+            className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
           />
-          {(minAge || maxAge) && (
+          <select
+            value={genderFilter}
+            onChange={(e) => setGenderFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+          >
+            <option value="">All genders</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+          <input
+            type="text"
+            placeholder="Job/qualification"
+            value={qualFilter}
+            onChange={(e) => setQualFilter(e.target.value)}
+            className="w-36 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+          />
+          {(minAge || maxAge || genderFilter || qualFilter) && (
             <button
               type="button"
-              onClick={() => { setMinAge(""); setMaxAge(""); }}
+              onClick={() => { setMinAge(""); setMaxAge(""); setGenderFilter(""); setQualFilter(""); }}
               className="text-xs text-gray-400 hover:text-gray-600 underline"
             >
-              Clear
+              Clear filters
             </button>
           )}
         </div>
@@ -216,6 +241,8 @@ export default function EnrollPage() {
                   <p className="text-xs text-gray-400">
                     {m.member_number ?? m.phone}
                     {age !== null && ` · ${age} yrs`}
+                    {m.gender && ` · ${m.gender}`}
+                    {m.qualification && ` · ${m.qualification}`}
                   </p>
                 </div>
                 {isSelected && (

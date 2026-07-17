@@ -72,10 +72,16 @@ export async function PATCH(
     "id_type",
     "id_last4",
     "qualification",
+    "status",
   ];
   const update: Record<string, unknown> = {};
   for (const k of allowed) {
     if (k in body) update[k] = body[k];
+  }
+
+  // Only allow toggling between active/inactive (not back to pending/rejected)
+  if ("status" in update && !["active", "inactive"].includes(update.status as string)) {
+    return NextResponse.json({ error: "Status can only be set to active or inactive" }, { status: 400 });
   }
 
   const { error } = await supabase.from("members").update(update).eq("id", id);

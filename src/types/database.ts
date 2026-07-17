@@ -352,6 +352,49 @@ export interface Database {
         };
         Relationships: [];
       };
+      families: {
+        Row: {
+          id: string;
+          created_at: string;
+          masjid_id: string;
+          name: string;
+          head_member_id: string;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          masjid_id: string;
+          name: string;
+          head_member_id: string;
+        };
+        Update: {
+          name?: string;
+          head_member_id?: string;
+        };
+        Relationships: [];
+      };
+      family_members: {
+        Row: {
+          id: string;
+          created_at: string;
+          masjid_id: string;
+          family_id: string;
+          member_id: string;
+          relationship: string;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          masjid_id: string;
+          family_id: string;
+          member_id: string;
+          relationship: string;
+        };
+        Update: {
+          relationship?: string;
+        };
+        Relationships: [];
+      };
       donations: {
         Row: {
           id: string;
@@ -426,3 +469,5 @@ export type Enrollment = Database["public"]["Tables"]["enrollments"]["Row"];
 export type Receipt = Database["public"]["Tables"]["receipts"]["Row"];
 export type LedgerEntry = Database["public"]["Tables"]["ledger"]["Row"];
 export type Donation = Database["public"]["Tables"]["donations"]["Row"];
+export type Family = Database["public"]["Tables"]["families"]["Row"];
+export type FamilyMember = Database["public"]["Tables"]["family_members"]["Row"];

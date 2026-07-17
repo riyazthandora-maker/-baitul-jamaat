@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, LogOut, TrendingUp, Receipt } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, TrendingUp, Receipt, Users2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/admin/members", label: "Members", icon: Users },
   { href: "/admin/programs", label: "Programs", icon: TrendingUp },
   { href: "/admin/receipts", label: "Receipts", icon: Receipt },
+  { href: "/admin/families", label: "Families", icon: Users2 },
 ];
 
 export default function AdminNav() {

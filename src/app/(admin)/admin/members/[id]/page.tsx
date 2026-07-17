@@ -7,6 +7,7 @@ import VoidButton from "@/components/VoidButton";
 import AddDiscountForm from "@/components/AddDiscountForm";
 import StatementActions from "@/components/StatementActions";
 import LedgerList from "@/components/LedgerList";
+import MemberStatusToggle from "@/components/MemberStatusToggle";
 
 export default async function MemberReviewPage({
   params,
@@ -205,13 +206,21 @@ export default async function MemberReviewPage({
       )}
 
       {member.status !== "pending" && (
-        <div className="bg-gray-50 rounded-xl p-4 text-center text-gray-500 text-sm">
-          Status:{" "}
-          <span className="font-medium capitalize">{member.status}</span>
-          {member.member_number && (
-            <span className="ml-2 font-mono text-brand-green">
-              {member.member_number}
-            </span>
+        <div className="bg-gray-50 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-gray-500 text-sm">
+            Status:{" "}
+            <span className="font-medium capitalize">{member.status}</span>
+            {member.member_number && (
+              <span className="ml-2 font-mono text-brand-green">
+                {member.member_number}
+              </span>
+            )}
+          </div>
+          {(member.status === "active" || member.status === "inactive") && (
+            <MemberStatusToggle
+              memberId={id}
+              currentStatus={member.status}
+            />
           )}
         </div>
       )}
