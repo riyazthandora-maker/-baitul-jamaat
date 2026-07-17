@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import QRCode from "qrcode";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Users, Clock, QrCode, Mail, Download, TrendingUp, Receipt } from "lucide-react";
+import { Users, Clock, QrCode, Mail, Download, TrendingUp, Receipt, AlertCircle } from "lucide-react";
 import QrDownloadButton from "@/components/QrDownloadButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
 
@@ -19,7 +19,7 @@ export default async function AdminDashboard() {
     .eq("id", masjidId)
     .maybeSingle();
 
-  const [{ count: pendingCount }, { count: activeCount }] = await Promise.all([
+  const [{ count: pendingCount }, { count: activeCount }, { data: ledgerRows }] = await Promise.all([
     supabase
       .from("members")
       .select("id", { count: "exact", head: true })
@@ -28,7 +28,16 @@ export default async function AdminDashboard() {
       .from("members")
       .select("id", { count: "exact", head: true })
       .eq("status", "active"),
+    supabase
+      .from("ledger")
+      .select("type, amount")
+      .eq("masjid_id", masjidId)
+      .is("voided_at", null),
   ]);
+
+  const totalOutstanding = (ledgerRows ?? []).reduce((sum, e) => {
+    return e.type === "charge" ? sum + Number(e.amount) : sum - Number(e.amount);
+  }, 0);
 
   const headersList = await headers();
   const host = headersList.get("host") ?? "localhost:3000";
@@ -81,6 +90,23 @@ export default async function AdminDashboard() {
           </div>
         </Link>
       </div>
+
+      {/* Outstanding balance */}
+      <Link
+        href="/admin/members?status=active"
+        className={`flex items-center gap-4 bg-white rounded-xl shadow-sm p-5 border hover:shadow-md transition-shadow ${
+          totalOutstanding > 0 ? "border-red-100" : "border-green-100"
+        }`}
+      >
+        <AlertCircle className={`w-8 h-8 flex-shrink-0 ${totalOutstanding > 0 ? "text-red-500" : "text-brand-green"}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-gray-500">Total Outstanding Balance</p>
+          <p className={`text-2xl font-bold ${totalOutstanding > 0 ? "text-red-600" : "text-brand-green"}`}>
+            ₹{totalOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </p>
+        </div>
+        <p className="text-xs text-gray-400 flex-shrink-0">View members →</p>
+      </Link>
 
       {/* Quick links */}
       <div className="grid grid-cols-2 gap-4">

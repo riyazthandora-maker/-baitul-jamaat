@@ -5,6 +5,7 @@ interface EmailPayload {
   subject: string;
   html: string;
   masjid_id?: string;
+  attachment?: { filename: string; content: Buffer };
 }
 
 export async function sendEmail(payload: EmailPayload): Promise<void> {
@@ -19,6 +20,9 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
       to: payload.to,
       subject: payload.subject,
       html: payload.html,
+      ...(payload.attachment
+        ? { attachments: [{ filename: payload.attachment.filename, content: payload.attachment.content }] }
+        : {}),
     });
     if (error) {
       console.error("[Email] Resend error:", error);

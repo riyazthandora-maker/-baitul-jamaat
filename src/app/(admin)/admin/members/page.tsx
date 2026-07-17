@@ -29,13 +29,24 @@ export default async function AdminMembersPage({
   const { status = "pending" } = await searchParams;
   const supabase = await createClient();
 
-  const { data: members } = await supabase
-    .from("members")
-    .select(
-      "id, created_at, full_name, phone, status, member_number, duplicate_flag"
-    )
-    .eq("status", status)
-    .order("created_at", { ascending: false });
+  const [{ data: members }, { data: ledgerRows }] = await Promise.all([
+    supabase
+      .from("members")
+      .select("id, created_at, full_name, phone, status, member_number, duplicate_flag")
+      .eq("status", status)
+      .order("created_at", { ascending: false }),
+    status === "active"
+      ? supabase.from("ledger").select("member_id, type, amount").is("voided_at", null)
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const balanceMap = new Map<string, number>();
+  if (ledgerRows) {
+    for (const e of ledgerRows) {
+      const prev = balanceMap.get(e.member_id) ?? 0;
+      balanceMap.set(e.member_id, e.type === "charge" ? prev + Number(e.amount) : prev - Number(e.amount));
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -103,7 +114,15 @@ export default async function AdminMembersPage({
                     </p>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {balanceMap.has(m.id) && (
+                    <span className={`text-sm font-semibold ${(balanceMap.get(m.id) ?? 0) > 0 ? "text-red-600" : "text-brand-green"}`}>
+                      ₹{Math.abs(balanceMap.get(m.id) ?? 0).toLocaleString("en-IN")}
+                      {(balanceMap.get(m.id) ?? 0) > 0 && <span className="text-xs font-normal text-red-400 ml-1">due</span>}
+                    </span>
+                  )}
+                  <ChevronRight className="w-5 h-5 text-gray-300" />
+                </div>
               </Link>
             ))}
           </div>

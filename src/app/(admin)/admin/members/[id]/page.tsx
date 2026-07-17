@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowLeft, Receipt, TrendingDown, FileText } from "lucid
 import ApproveRejectButtons from "@/components/ApproveRejectButtons";
 import VoidButton from "@/components/VoidButton";
 import AddDiscountForm from "@/components/AddDiscountForm";
+import StatementActions from "@/components/StatementActions";
 
 export default async function MemberReviewPage({
   params,
@@ -238,9 +239,12 @@ export default async function MemberReviewPage({
       {/* Ledger */}
       {ledgerEntries && ledgerEntries.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm p-5 space-y-3">
-          <h2 className="font-semibold text-gray-700 flex items-center gap-2">
-            <TrendingDown className="w-4 h-4 text-brand-green" /> Ledger
-          </h2>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h2 className="font-semibold text-gray-700 flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-brand-green" /> Ledger
+            </h2>
+            <StatementActions memberId={id} memberEmail={member.email} />
+          </div>
           <div className="divide-y text-sm">
             {ledgerEntries.map((e) => (
               <div
