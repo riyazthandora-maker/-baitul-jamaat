@@ -12,7 +12,7 @@ Spec: SPEC.md (read it before touching anything)
   - Postgres with Row Level Security
   - Supabase Auth for sessions
   - Private Storage bucket for ID documents and photos
-- **AI:** Google Gemini API — model `gemini-2.0-flash-lite` ONLY (cheapest); all calls server-side, API key never exposed to client
+- **AI:** Google Gemini API — model `gemini-2.5-flash` ONLY (cheapest); all calls server-side, API key never exposed to client
 - **Email:** Resend free tier; if `RESEND_API_KEY` not set, log payload to `outbox` table — app must work without email
 - **PDF:** `@react-pdf/renderer` or `pdf-lib` (server-side only)
 - **QR codes:** `qrcode` npm package
@@ -68,8 +68,8 @@ Work in this sequence. Commit after each step. Do not skip ahead.
 - [x] **Step 3** — Self-registration flow + QR code + storage (manual, no AI yet)
 - [x] **Step 4** — Gemini OCR + duplicate detection
 - [x] **Step 5** — Approval flow + member credentials + member portal (balance view + GPay QR)
-- [ ] **Step 6** — Revenue programs + enrollment + billing cron + ledger
-- [ ] **Step 7** — Receipts + PDFs + audit trail + monthly statement job + emails
+- [x] **Step 6** — Revenue programs + enrollment + billing cron + ledger
+- [x] **Step 7** — Receipts + PDFs + audit trail + monthly statement job + emails
 - [ ] **Step 8** — Family mapping + Gemini suggestions
 - [ ] **Step 9** — Islamic-themed landing page, polish, seed data, README
 

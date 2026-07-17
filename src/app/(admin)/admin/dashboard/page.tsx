@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import QRCode from "qrcode";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Users, Clock, QrCode, Mail } from "lucide-react";
+import { Users, Clock, QrCode, Mail, Download, TrendingUp, Receipt } from "lucide-react";
 import QrDownloadButton from "@/components/QrDownloadButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
 
@@ -80,6 +80,45 @@ export default async function AdminDashboard() {
             </div>
           </div>
         </Link>
+      </div>
+
+      {/* Quick links */}
+      <div className="grid grid-cols-2 gap-4">
+        <Link
+          href="/admin/programs"
+          className="bg-white rounded-xl shadow-sm p-4 border border-brand-green/10 hover:shadow-md transition-shadow flex items-center gap-3"
+        >
+          <TrendingUp className="w-8 h-8 text-brand-green" />
+          <div>
+            <p className="font-semibold text-gray-800">Programs</p>
+            <p className="text-xs text-gray-400">Manage billing programs</p>
+          </div>
+        </Link>
+        <Link
+          href="/admin/receipts"
+          className="bg-white rounded-xl shadow-sm p-4 border border-brand-gold/20 hover:shadow-md transition-shadow flex items-center gap-3"
+        >
+          <Receipt className="w-8 h-8 text-brand-gold" />
+          <div>
+            <p className="font-semibold text-gray-800">Receipts</p>
+            <p className="text-xs text-gray-400">Record payments</p>
+          </div>
+        </Link>
+      </div>
+
+      {/* Statement download */}
+      <div className="bg-white rounded-xl shadow-sm p-5 flex items-center justify-between">
+        <div>
+          <p className="font-semibold text-gray-700">Monthly Statement</p>
+          <p className="text-sm text-gray-400">Download current month&apos;s outstanding PDF</p>
+        </div>
+        <a
+          href="/api/admin/statements"
+          target="_blank"
+          className="flex items-center gap-2 bg-brand-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
+        >
+          <Download className="w-4 h-4" /> Download
+        </a>
       </div>
 
       {qrDataUrl && masjid && (

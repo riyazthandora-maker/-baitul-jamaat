@@ -1,8 +1,10 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Receipt, TrendingDown, FileText } from "lucide-react";
 import ApproveRejectButtons from "@/components/ApproveRejectButtons";
+import VoidButton from "@/components/VoidButton";
+import AddDiscountForm from "@/components/AddDiscountForm";
 
 export default async function MemberReviewPage({
   params,
@@ -37,6 +39,25 @@ export default async function MemberReviewPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((member as any).id_doc_back_url) idDocBackSignedUrl = await signUrl((member as any).id_doc_back_url);
   if (member.photo_url) photoSignedUrl = await signUrl(member.photo_url);
+
+  // Ledger entries for this member
+  const { data: ledgerEntries } = await supabase
+    .from("ledger")
+    .select("*, programs(name)")
+    .eq("member_id", id)
+    .order("created_at", { ascending: false });
+
+  const activeEntries = (ledgerEntries ?? []).filter((e) => !e.voided_at);
+  const balance = activeEntries.reduce((sum, e) => {
+    return e.type === "charge" ? sum + Number(e.amount) : sum - Number(e.amount);
+  }, 0);
+
+  // Receipts for this member
+  const { data: receipts } = await supabase
+    .from("receipts")
+    .select("*")
+    .eq("member_id", id)
+    .order("created_at", { ascending: false });
 
   const fields: Array<{ label: string; value: string | null | undefined }> = [
     { label: "Full Name", value: member.full_name },
@@ -190,6 +211,107 @@ export default async function MemberReviewPage({
               {member.member_number}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Balance summary */}
+      {member.status === "active" && (
+        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center justify-between">
+          <p className="text-gray-500 text-sm">Outstanding Balance</p>
+          <p className={`text-2xl font-bold ${balance > 0 ? "text-red-600" : "text-brand-green"}`}>
+            ₹{balance.toFixed(2)}
+          </p>
+          <Link
+            href={`/admin/receipts/new?member_id=${id}`}
+            className="flex items-center gap-1.5 bg-brand-green text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
+          >
+            <Receipt className="w-4 h-4" /> Record Payment
+          </Link>
+        </div>
+      )}
+
+      {/* Add discount */}
+      {member.status === "active" && (
+        <AddDiscountForm memberId={id} />
+      )}
+
+      {/* Ledger */}
+      {ledgerEntries && ledgerEntries.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-5 space-y-3">
+          <h2 className="font-semibold text-gray-700 flex items-center gap-2">
+            <TrendingDown className="w-4 h-4 text-brand-green" /> Ledger
+          </h2>
+          <div className="divide-y text-sm">
+            {ledgerEntries.map((e) => (
+              <div
+                key={e.id}
+                className={`flex items-center gap-3 py-2.5 ${e.voided_at ? "opacity-40 line-through" : ""}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">
+                    {e.description ?? e.type}
+                    {(e.programs as { name: string } | null)?.name && (
+                      <span className="text-gray-400 font-normal ml-1">
+                        · {(e.programs as { name: string }).name}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(e.created_at).toLocaleDateString("en-IN")}
+                    {e.void_reason && ` — voided: ${e.void_reason}`}
+                  </p>
+                </div>
+                <p
+                  className={`font-semibold flex-shrink-0 ${
+                    e.type === "charge" ? "text-red-600" : "text-brand-green"
+                  }`}
+                >
+                  {e.type === "charge" ? "+" : "−"} ₹{Number(e.amount).toFixed(0)}
+                </p>
+                {!e.voided_at && e.type !== "payment" && (
+                  <VoidButton
+                    endpoint={`/api/admin/ledger/${e.id}/void`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Receipts */}
+      {receipts && receipts.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-5 space-y-3">
+          <h2 className="font-semibold text-gray-700 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-brand-green" /> Receipts
+          </h2>
+          <div className="divide-y text-sm">
+            {receipts.map((r) => (
+              <div key={r.id} className={`flex items-center gap-3 py-2.5 ${r.voided_at ? "opacity-40" : ""}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{r.receipt_number}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(r.created_at).toLocaleDateString("en-IN")}
+                    {r.notes && ` — ${r.notes}`}
+                    {r.void_reason && ` — voided: ${r.void_reason}`}
+                  </p>
+                </div>
+                <p className="font-semibold text-brand-green flex-shrink-0">
+                  ₹{Number(r.amount).toFixed(0)}
+                </p>
+                <a
+                  href={`/api/admin/receipts/${r.id}/pdf`}
+                  target="_blank"
+                  className="text-gray-400 hover:text-brand-green flex-shrink-0"
+                >
+                  <FileText className="w-4 h-4" />
+                </a>
+                {!r.voided_at && (
+                  <VoidButton endpoint={`/api/admin/receipts/${r.id}/void`} />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

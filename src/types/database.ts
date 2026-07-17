@@ -189,6 +189,136 @@ export interface Database {
         };
         Relationships: [];
       };
+      programs: {
+        Row: {
+          id: string;
+          created_at: string;
+          masjid_id: string;
+          name: string;
+          default_amount: number;
+          recurrence: "monthly" | "yearly";
+          start_date: string;
+          end_date: string | null;
+          active: boolean;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          masjid_id: string;
+          name: string;
+          default_amount: number;
+          recurrence: "monthly" | "yearly";
+          start_date: string;
+          end_date?: string | null;
+          active?: boolean;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          masjid_id?: string;
+          name?: string;
+          default_amount?: number;
+          recurrence?: "monthly" | "yearly";
+          start_date?: string;
+          end_date?: string | null;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
+      enrollments: {
+        Row: {
+          id: string;
+          created_at: string;
+          masjid_id: string;
+          program_id: string;
+          member_id: string;
+          amount: number;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          masjid_id: string;
+          program_id: string;
+          member_id: string;
+          amount: number;
+        };
+        Update: {
+          id?: string;
+          amount?: number;
+        };
+        Relationships: [];
+      };
+      receipts: {
+        Row: {
+          id: string;
+          created_at: string;
+          masjid_id: string;
+          member_id: string;
+          receipt_number: string;
+          amount: number;
+          notes: string | null;
+          voided_at: string | null;
+          void_reason: string | null;
+          pdf_path: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          masjid_id: string;
+          member_id: string;
+          receipt_number: string;
+          amount: number;
+          notes?: string | null;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          pdf_path?: string | null;
+        };
+        Update: {
+          notes?: string | null;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          pdf_path?: string | null;
+        };
+        Relationships: [];
+      };
+      ledger: {
+        Row: {
+          id: string;
+          created_at: string;
+          masjid_id: string;
+          member_id: string;
+          program_id: string | null;
+          enrollment_id: string | null;
+          receipt_id: string | null;
+          type: "charge" | "discount" | "payment";
+          amount: number;
+          description: string | null;
+          period_key: string | null;
+          voided_at: string | null;
+          void_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          masjid_id: string;
+          member_id: string;
+          program_id?: string | null;
+          enrollment_id?: string | null;
+          receipt_id?: string | null;
+          type: "charge" | "discount" | "payment";
+          amount: number;
+          description?: string | null;
+          period_key?: string | null;
+          voided_at?: string | null;
+          void_reason?: string | null;
+        };
+        Update: {
+          description?: string | null;
+          voided_at?: string | null;
+          void_reason?: string | null;
+        };
+        Relationships: [];
+      };
       audit_log: {
         Row: {
           id: string;
@@ -250,3 +380,7 @@ export interface Database {
 export type Masjid = Database["public"]["Tables"]["masjids"]["Row"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Member = Database["public"]["Tables"]["members"]["Row"];
+export type Program = Database["public"]["Tables"]["programs"]["Row"];
+export type Enrollment = Database["public"]["Tables"]["enrollments"]["Row"];
+export type Receipt = Database["public"]["Tables"]["receipts"]["Row"];
+export type LedgerEntry = Database["public"]["Tables"]["ledger"]["Row"];
