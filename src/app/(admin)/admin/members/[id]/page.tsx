@@ -6,6 +6,7 @@ import ApproveRejectButtons from "@/components/ApproveRejectButtons";
 import VoidButton from "@/components/VoidButton";
 import AddDiscountForm from "@/components/AddDiscountForm";
 import StatementActions from "@/components/StatementActions";
+import LedgerList from "@/components/LedgerList";
 
 export default async function MemberReviewPage({
   params,
@@ -245,41 +246,12 @@ export default async function MemberReviewPage({
             </h2>
             <StatementActions memberId={id} memberEmail={member.email} />
           </div>
-          <div className="divide-y text-sm">
-            {ledgerEntries.map((e) => (
-              <div
-                key={e.id}
-                className={`flex items-center gap-3 py-2.5 ${e.voided_at ? "opacity-40 line-through" : ""}`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">
-                    {e.description ?? e.type}
-                    {(e.programs as { name: string } | null)?.name && (
-                      <span className="text-gray-400 font-normal ml-1">
-                        · {(e.programs as { name: string }).name}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(e.created_at).toLocaleDateString("en-IN")}
-                    {e.void_reason && ` — voided: ${e.void_reason}`}
-                  </p>
-                </div>
-                <p
-                  className={`font-semibold flex-shrink-0 ${
-                    e.type === "charge" ? "text-red-600" : "text-brand-green"
-                  }`}
-                >
-                  {e.type === "charge" ? "+" : "−"} ₹{Number(e.amount).toFixed(0)}
-                </p>
-                {!e.voided_at && e.type !== "payment" && (
-                  <VoidButton
-                    endpoint={`/api/admin/ledger/${e.id}/void`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+          <LedgerList
+            entries={(ledgerEntries ?? []).map((e) => ({
+              ...e,
+              programs: (e.programs as { name: string } | null),
+            }))}
+          />
         </div>
       )}
 
