@@ -200,6 +200,7 @@ export interface Database {
           start_date: string;
           end_date: string | null;
           active: boolean;
+          last_billed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -211,6 +212,7 @@ export interface Database {
           start_date: string;
           end_date?: string | null;
           active?: boolean;
+          last_billed_at?: string | null;
         };
         Update: {
           id?: string;
@@ -222,6 +224,7 @@ export interface Database {
           start_date?: string;
           end_date?: string | null;
           active?: boolean;
+          last_billed_at?: string | null;
         };
         Relationships: [];
       };

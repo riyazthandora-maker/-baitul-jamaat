@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, Users, Download } from "lucide-react";
 import ProgramActions from "@/components/ProgramActions";
 import UnenrollButton from "@/components/UnenrollButton";
+import RunBillingForm from "@/components/RunBillingForm";
 
 export default async function ProgramDetailPage({
   params,
@@ -47,7 +48,7 @@ export default async function ProgramDetailPage({
       </div>
 
       {/* Program info */}
-      <div className="bg-white rounded-xl shadow-sm p-5 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+      <div className="bg-white rounded-xl shadow-sm p-5 grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
         <div>
           <p className="text-gray-400">Default Amount</p>
           <p className="font-semibold">₹{Number(program.default_amount).toFixed(0)}</p>
@@ -66,10 +67,21 @@ export default async function ProgramDetailPage({
             {program.end_date ? new Date(program.end_date).toLocaleDateString("en-IN") : "—"}
           </p>
         </div>
+        <div>
+          <p className="text-gray-400">Last Billed</p>
+          <p className="font-semibold">
+            {program.last_billed_at
+              ? new Date(program.last_billed_at).toLocaleDateString("en-IN")
+              : "Never"}
+          </p>
+        </div>
       </div>
 
       {/* Actions */}
       <ProgramActions programId={program.id} active={program.active} />
+
+      {/* Manual Billing */}
+      <RunBillingForm programId={program.id} />
 
       {/* Enrollments */}
       <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">

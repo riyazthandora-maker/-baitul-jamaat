@@ -1,0 +1,1 @@
+ALTER TABLE programs ADD COLUMN IF NOT EXISTS last_billed_at TIMESTAMPTZ;

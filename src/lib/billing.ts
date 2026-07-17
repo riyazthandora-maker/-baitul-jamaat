@@ -111,6 +111,68 @@ export async function runBillingCycle(
   return result;
 }
 
+export async function runProgramBilling(
+  supabase: SupabaseClient,
+  programId: string,
+  date: Date
+): Promise<{ created: number; skipped: number; errors: string[] }> {
+  const result = { created: 0, skipped: 0, errors: [] as string[] };
+
+  const { data: program, error: progErr } = await supabase
+    .from("programs")
+    .select("id, masjid_id, name, default_amount, recurrence, start_date, end_date, active")
+    .eq("id", programId)
+    .maybeSingle();
+
+  if (progErr || !program) {
+    result.errors.push("Program not found");
+    return result;
+  }
+
+  const { data: enrollments, error: enrollErr } = await supabase
+    .from("enrollments")
+    .select("id, member_id, amount, members!inner(status)")
+    .eq("program_id", programId)
+    .eq("members.status", "active");
+
+  if (enrollErr) {
+    result.errors.push(`Enrollment fetch failed: ${enrollErr.message}`);
+    return result;
+  }
+
+  for (const enrollment of enrollments ?? []) {
+    const periodKey = computePeriodKey(
+      programId,
+      enrollment.member_id,
+      date,
+      program.recurrence as "monthly" | "yearly"
+    );
+
+    const { error: insertErr } = await supabase.from("ledger").insert({
+      masjid_id: program.masjid_id,
+      member_id: enrollment.member_id,
+      program_id: programId,
+      enrollment_id: enrollment.id,
+      type: "charge",
+      amount: enrollment.amount,
+      description: program.name,
+      period_key: periodKey,
+    });
+
+    if (insertErr) {
+      if (insertErr.code === "23505" || insertErr.message.includes("unique")) {
+        result.skipped++;
+      } else {
+        result.errors.push(`Charge insert failed (${periodKey}): ${insertErr.message}`);
+      }
+    } else {
+      result.created++;
+    }
+  }
+
+  return result;
+}
+
 export async function getMemberBalance(
   supabase: SupabaseClient,
   memberId: string

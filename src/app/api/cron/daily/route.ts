@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { runBillingCycle } from "@/lib/billing";
 import { generateStatementPdf } from "@/lib/pdf";
 import { sendEmail } from "@/lib/email";
 
@@ -16,11 +15,7 @@ export async function GET(request: NextRequest) {
   const today = new Date();
   const results: Record<string, unknown> = {};
 
-  // ── 1. Billing cycle ──────────────────────────────────────────
-  const billing = await runBillingCycle(supabase, today);
-  results.billing = billing;
-
-  // ── 2. Month-start statement emails (runs on 1st only) ────────
+  // ── Month-start statement emails (runs on 1st only) ────────
   if (today.getDate() === 1) {
     const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const year = prevMonth.getFullYear();
