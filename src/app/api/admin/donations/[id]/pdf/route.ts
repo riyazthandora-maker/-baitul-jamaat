@@ -14,13 +14,13 @@ export async function GET(
   }
   const masjidId = user.app_metadata?.masjid_id as string;
 
-  const { data: receipt } = await supabase
-    .from("receipts")
-    .select("*, members(full_name, member_number, phone)")
+  const { data: donation } = await supabase
+    .from("donations")
+    .select("*")
     .eq("id", id)
     .maybeSingle();
 
-  if (!receipt) return new NextResponse("Not found", { status: 404 });
+  if (!donation) return new NextResponse("Not found", { status: 404 });
 
   const { data: masjid } = await supabase
     .from("masjids")
@@ -30,21 +30,24 @@ export async function GET(
 
   if (!masjid) return new NextResponse("Masjid not found", { status: 404 });
 
-  const member = receipt.members as { full_name: string; member_number: string | null; phone: string };
-
   const pdfBytes = await generateReceiptPdf({
-    receipt_number: receipt.receipt_number,
-    created_at: receipt.created_at,
-    amount: receipt.amount,
-    notes: receipt.notes,
-    payee: { name: member.full_name, identifier: member.member_number, phone: member.phone },
+    title: "DONATION RECEIPT",
+    receipt_number: donation.receipt_number,
+    created_at: donation.created_at,
+    amount: donation.amount,
+    notes: donation.purpose,
+    payee: {
+      name: donation.donor_name,
+      identifier: donation.donor_phone ?? null,
+      phone: donation.donor_phone ?? null,
+    },
     masjid,
   });
 
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${receipt.receipt_number}.pdf"`,
+      "Content-Disposition": `attachment; filename="${donation.receipt_number}.pdf"`,
     },
   });
 }

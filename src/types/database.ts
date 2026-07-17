@@ -349,6 +349,44 @@ export interface Database {
         };
         Relationships: [];
       };
+      donations: {
+        Row: {
+          id: string;
+          created_at: string;
+          masjid_id: string;
+          donor_name: string;
+          donor_phone: string | null;
+          donor_email: string | null;
+          amount: number;
+          purpose: string | null;
+          receipt_number: string;
+          voided_at: string | null;
+          void_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          masjid_id: string;
+          donor_name: string;
+          donor_phone?: string | null;
+          donor_email?: string | null;
+          amount: number;
+          purpose?: string | null;
+          receipt_number: string;
+          voided_at?: string | null;
+          void_reason?: string | null;
+        };
+        Update: {
+          donor_name?: string;
+          donor_phone?: string | null;
+          donor_email?: string | null;
+          amount?: number;
+          purpose?: string | null;
+          voided_at?: string | null;
+          void_reason?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -384,3 +422,4 @@ export type Program = Database["public"]["Tables"]["programs"]["Row"];
 export type Enrollment = Database["public"]["Tables"]["enrollments"]["Row"];
 export type Receipt = Database["public"]["Tables"]["receipts"]["Row"];
 export type LedgerEntry = Database["public"]["Tables"]["ledger"]["Row"];
+export type Donation = Database["public"]["Tables"]["donations"]["Row"];

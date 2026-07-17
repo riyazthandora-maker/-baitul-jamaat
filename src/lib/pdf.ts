@@ -28,7 +28,8 @@ export async function generateReceiptPdf(receipt: {
   created_at: string;
   amount: number;
   notes: string | null;
-  member: { full_name: string; member_number: string | null; phone: string };
+  title?: string;
+  payee: { name: string; identifier: string | null; phone: string | null };
   masjid: { name: string; address: string; phone: string };
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -41,7 +42,7 @@ export async function generateReceiptPdf(receipt: {
 
   // Header band
   page.drawRectangle({ x: 0, y: y - 10, width, height: 54, color: GREEN });
-  page.drawText("PAYMENT RECEIPT", {
+  page.drawText(receipt.title ?? "PAYMENT RECEIPT", {
     x: 40,
     y: y + 22,
     size: 18,
@@ -78,15 +79,17 @@ export async function generateReceiptPdf(receipt: {
   page.drawText("RECEIVED FROM", { x: 40, y, size: 8, font: bold, color: GRAY });
   page.drawText("MASJID", { x: col2, y, size: 8, font: bold, color: GRAY });
   y -= 14;
-  page.drawText(receipt.member.full_name, { x: 40, y, size: 11, font: bold, color: BLACK });
+  page.drawText(receipt.payee.name, { x: 40, y, size: 11, font: bold, color: BLACK });
   page.drawText(receipt.masjid.name, { x: col2, y, size: 11, font: bold, color: BLACK });
   y -= 14;
-  if (receipt.member.member_number) {
-    page.drawText(receipt.member.member_number, { x: 40, y, size: 9, font: regular, color: GRAY });
+  if (receipt.payee.identifier) {
+    page.drawText(receipt.payee.identifier, { x: 40, y, size: 9, font: regular, color: GRAY });
   }
   page.drawText(receipt.masjid.address, { x: col2, y, size: 9, font: regular, color: GRAY });
   y -= 12;
-  page.drawText(`Ph: ${receipt.member.phone}`, { x: 40, y, size: 9, font: regular, color: GRAY });
+  if (receipt.payee.phone) {
+    page.drawText(`Ph: ${receipt.payee.phone}`, { x: 40, y, size: 9, font: regular, color: GRAY });
+  }
   page.drawText(`Ph: ${receipt.masjid.phone}`, { x: col2, y, size: 9, font: regular, color: GRAY });
 
   y -= 24;
