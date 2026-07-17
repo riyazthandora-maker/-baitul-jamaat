@@ -10,18 +10,29 @@ type Member = {
   full_name: string;
   member_number: string | null;
   phone: string;
-  gender: string | null;
-  qualification: string | null;
+  dob: string | null;
 };
 
 type EnrollRow = { member_id: string; amount: string };
+
+function computeAge(dob: string): number {
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
 
 export default function EnrollPage() {
   const { id: programId } = useParams<{ id: string }>();
   const router = useRouter();
 
   const [members, setMembers] = useState<Member[]>([]);
+  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [minAge, setMinAge] = useState("");
+  const [maxAge, setMaxAge] = useState("");
   const [selected, setSelected] = useState<Map<string, EnrollRow>>(new Map());
   const [defaultAmount, setDefaultAmount] = useState<string>("0");
   const [saving, setSaving] = useState(false);
@@ -31,19 +42,40 @@ export default function EnrollPage() {
     fetch("/api/admin/members?status=active")
       .then((r) => r.json())
       .then((d) => setMembers(d.members ?? []));
+
     fetch(`/api/admin/programs/${programId}`)
       .then((r) => r.json())
       .then((d) => {
-        if (d.program) setDefaultAmount(String(d.program.default_amount));
+        if (d.program) {
+          setDefaultAmount(String(d.program.default_amount));
+          const ids = new Set<string>(
+            (d.program.enrollments ?? []).map((e: { member_id: string }) => e.member_id)
+          );
+          setEnrolledIds(ids);
+        }
       });
   }, [programId]);
 
-  const filtered = members.filter(
-    (m) =>
-      m.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      m.phone.includes(search) ||
-      (m.member_number ?? "").includes(search)
-  );
+  const filtered = members.filter((m) => {
+    if (enrolledIds.has(m.id)) return false;
+
+    const q = search.toLowerCase();
+    const matchesSearch =
+      !q ||
+      m.full_name.toLowerCase().includes(q) ||
+      m.phone.includes(q) ||
+      (m.member_number ?? "").includes(q);
+    if (!matchesSearch) return false;
+
+    if (minAge || maxAge) {
+      if (!m.dob) return false;
+      const age = computeAge(m.dob);
+      if (minAge && age < parseInt(minAge, 10)) return false;
+      if (maxAge && age > parseInt(maxAge, 10)) return false;
+    }
+
+    return true;
+  });
 
   function toggle(member: Member) {
     setSelected((prev) => {
@@ -106,6 +138,7 @@ export default function EnrollPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+        {/* Search row */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -126,10 +159,45 @@ export default function EnrollPage() {
           </button>
         </div>
 
+        {/* Age filter row */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500 whitespace-nowrap">Age range:</span>
+          <input
+            type="number"
+            min="0"
+            max="120"
+            placeholder="Min"
+            value={minAge}
+            onChange={(e) => setMinAge(e.target.value)}
+            className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+          />
+          <span className="text-gray-400 text-sm">–</span>
+          <input
+            type="number"
+            min="0"
+            max="120"
+            placeholder="Max"
+            value={maxAge}
+            onChange={(e) => setMaxAge(e.target.value)}
+            className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+          />
+          {(minAge || maxAge) && (
+            <button
+              type="button"
+              onClick={() => { setMinAge(""); setMaxAge(""); }}
+              className="text-xs text-gray-400 hover:text-gray-600 underline"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Member list */}
         <div className="max-h-80 overflow-y-auto divide-y">
           {filtered.map((m) => {
             const row = selected.get(m.id);
             const isSelected = !!row;
+            const age = m.dob ? computeAge(m.dob) : null;
             return (
               <div key={m.id} className="flex items-center gap-3 py-2.5">
                 <button
@@ -145,7 +213,10 @@ export default function EnrollPage() {
                 </button>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{m.full_name}</p>
-                  <p className="text-xs text-gray-400">{m.member_number ?? m.phone}</p>
+                  <p className="text-xs text-gray-400">
+                    {m.member_number ?? m.phone}
+                    {age !== null && ` · ${age} yrs`}
+                  </p>
                 </div>
                 {isSelected && (
                   <div className="flex items-center gap-1 flex-shrink-0">
@@ -164,7 +235,7 @@ export default function EnrollPage() {
             );
           })}
           {!filtered.length && (
-            <p className="text-sm text-gray-400 text-center py-6">No active members found</p>
+            <p className="text-sm text-gray-400 text-center py-6">No members found</p>
           )}
         </div>
       </div>
