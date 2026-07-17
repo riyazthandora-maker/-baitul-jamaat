@@ -1,10 +1,24 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import QRCode from "qrcode";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Users, Clock, QrCode, Mail, Download, TrendingUp, Receipt, AlertCircle } from "lucide-react";
+import { Users, Clock, QrCode, Mail, Download, TrendingUp, Receipt } from "lucide-react";
 import QrDownloadButton from "@/components/QrDownloadButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import OutstandingBalanceCard from "@/components/OutstandingBalanceCard";
+
+function OutstandingBalanceSkeleton() {
+  return (
+    <div className="flex items-center gap-4 bg-white rounded-xl shadow-sm p-5 border border-gray-100 animate-pulse">
+      <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3 bg-gray-200 rounded w-40" />
+        <div className="h-7 bg-gray-200 rounded w-28" />
+      </div>
+    </div>
+  );
+}
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -19,7 +33,7 @@ export default async function AdminDashboard() {
     .eq("id", masjidId)
     .maybeSingle();
 
-  const [{ count: pendingCount }, { count: activeCount }, { data: ledgerRows }] = await Promise.all([
+  const [{ count: pendingCount }, { count: activeCount }] = await Promise.all([
     supabase
       .from("members")
       .select("id", { count: "exact", head: true })
@@ -28,16 +42,7 @@ export default async function AdminDashboard() {
       .from("members")
       .select("id", { count: "exact", head: true })
       .eq("status", "active"),
-    supabase
-      .from("ledger")
-      .select("type, amount")
-      .eq("masjid_id", masjidId)
-      .is("voided_at", null),
   ]);
-
-  const totalOutstanding = (ledgerRows ?? []).reduce((sum, e) => {
-    return e.type === "charge" ? sum + Number(e.amount) : sum - Number(e.amount);
-  }, 0);
 
   const headersList = await headers();
   const host = headersList.get("host") ?? "localhost:3000";
@@ -91,22 +96,10 @@ export default async function AdminDashboard() {
         </Link>
       </div>
 
-      {/* Outstanding balance */}
-      <Link
-        href="/admin/members?status=active"
-        className={`flex items-center gap-4 bg-white rounded-xl shadow-sm p-5 border hover:shadow-md transition-shadow ${
-          totalOutstanding > 0 ? "border-red-100" : "border-green-100"
-        }`}
-      >
-        <AlertCircle className={`w-8 h-8 flex-shrink-0 ${totalOutstanding > 0 ? "text-red-500" : "text-brand-green"}`} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-500">Total Outstanding Balance</p>
-          <p className={`text-2xl font-bold ${totalOutstanding > 0 ? "text-red-600" : "text-brand-green"}`}>
-            ₹{totalOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </p>
-        </div>
-        <p className="text-xs text-gray-400 flex-shrink-0">View members →</p>
-      </Link>
+      {/* Outstanding balance — streams in independently */}
+      <Suspense fallback={<OutstandingBalanceSkeleton />}>
+        <OutstandingBalanceCard masjidId={masjidId} />
+      </Suspense>
 
       {/* Quick links */}
       <div className="grid grid-cols-2 gap-4">
