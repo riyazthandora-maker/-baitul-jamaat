@@ -54,7 +54,7 @@ GEMINI_API_KEY=your-gemini-api-key
 
 # Optional — email delivery (falls back to outbox table if not set)
 RESEND_API_KEY=your-resend-api-key
-FROM_EMAIL=noreply@yourdomain.com
+RESEND_FROM=noreply@yourdomain.com
 
 # Optional — used for registration QR code link generation
 NEXT_PUBLIC_APP_URL=https://your-vercel-app.vercel.app
@@ -168,7 +168,7 @@ Push to `main` — Vercel auto-deploys.
 | `CRON_SECRET` | Yes | Shared secret for cron route authentication |
 | `GEMINI_API_KEY` | Optional | Google Gemini API key; OCR/AI features disabled without it |
 | `RESEND_API_KEY` | Optional | Resend email API key; emails log to `outbox` table if absent |
-| `FROM_EMAIL` | Optional | Sender address for emails (e.g. `noreply@yourdomain.com`) |
+| `RESEND_FROM` | Optional | Sender address for emails (e.g. `noreply@yourdomain.com`) |
 | `NEXT_PUBLIC_APP_URL` | Optional | Full app URL for QR code links (auto-detected from request headers if absent) |
 
 ---

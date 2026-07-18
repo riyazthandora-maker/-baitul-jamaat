@@ -94,8 +94,11 @@ export async function GET(request: NextRequest) {
           members: memberStatements,
         });
 
-        // Email admin (via phone-derived outbox since no real email on admin)
-        const adminEmail = `admin-${masjid.id}@bj.local`;
+        // Admin email uses phone-based address; without a real email column
+        // this goes to the outbox table as a logged artifact.
+        const adminEmail = adminProfile?.phone
+          ? `${adminProfile.phone}@bj.local`
+          : `admin-${masjid.id}@bj.local`;
         await sendEmail({
           to: adminEmail,
           subject: `Monthly Statement — ${monthLabel} — ${masjid.name}`,
@@ -104,10 +107,8 @@ export async function GET(request: NextRequest) {
 <p>Total members with activity: ${memberStatements.length}</p>
 <p>Total outstanding: ₹${memberStatements.reduce((s, m) => s + m.balance, 0).toFixed(2)}</p>`,
           masjid_id: masjid.id,
+          attachment: { filename: `statement-${monthLabel.replace(/\s+/g, "-")}.pdf`, content: Buffer.from(pdfBytes) },
         });
-
-        // Suppress unused variable warning — PDF is emailed above
-        void pdfBytes;
         statementResults.push(`${masjid.name}: ${memberStatements.length} members`);
       } catch (err) {
         statementResults.push(`${masjid.name}: failed — ${err}`);
