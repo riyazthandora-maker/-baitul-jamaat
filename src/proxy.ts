@@ -40,7 +40,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/change-password") ||
     pathname.startsWith("/inactive") ||
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/cron")
+    pathname.startsWith("/api/cron") ||
+    pathname.startsWith("/api/public")
   ) {
     return supabaseResponse;
   }

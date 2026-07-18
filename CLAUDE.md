@@ -59,6 +59,30 @@ Enforce via a custom JWT claim (`app_metadata.masjid_id`, `app_metadata.role`) s
 
 ---
 
+## Env Vars
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Service role key (server-side only) |
+| `SUPER_ADMIN_PHONE` | Yes | Seed super admin phone (login = `{phone}@bj.local`) |
+| `SUPER_ADMIN_PASSWORD` | Yes | Seed super admin password |
+| `CRON_SECRET` | Yes | Protects `/api/cron/daily` |
+| `RESEND_API_KEY` | No | If absent, emails log to `outbox` table |
+| `RESEND_FROM` | No | Sender address; defaults to `noreply@baitujamaat.app` — must be on a Resend-verified domain in production |
+| `SUPER_ADMIN_EMAIL` | No | Real inbox for new-masjid-application notifications |
+| `GEMINI_API_KEY` | Yes (Step 4+) | Gemini OCR + AI features |
+| `NEXT_PUBLIC_APP_URL` | No | Full origin URL used in email links (e.g. `https://yourapp.vercel.app`) |
+
+---
+
+## RLS Exception — `masjid_applications`
+
+The `masjid_applications` table does **not** carry `masjid_id` (it is a pre-masjid entity). RLS is still enabled: super admin has full access; public INSERT is performed via service role in the API route (bypasses RLS). No other role can read or write it.
+
+---
+
 ## Build Order & PROGRESS
 
 Work in this sequence. Commit after each step. Do not skip ahead.
@@ -72,5 +96,6 @@ Work in this sequence. Commit after each step. Do not skip ahead.
 - [x] **Step 7** — Receipts + PDFs + audit trail + monthly statement job + emails
 - [x] **Step 8** — Family mapping + Gemini suggestions
 - [x] **Step 9** — Islamic-themed landing page, polish, seed data, README
+- [x] **Step 10** — Public masjid registration request form + super admin approval flow
 
 Mark a step `[x]` when it is fully committed and verified against SPEC.md.
