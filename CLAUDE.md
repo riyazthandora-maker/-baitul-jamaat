@@ -12,7 +12,7 @@ Spec: SPEC.md (read it before touching anything)
   - Postgres with Row Level Security
   - Supabase Auth for sessions
   - Private Storage bucket for ID documents and photos
-- **AI:** Google Gemini API — model `gemini-2.5-flash` ONLY (cheapest); all calls server-side, API key never exposed to client
+- **AI:** Google Gemini API — model `gemini-3.5-flash` ONLY (cheapest); all calls server-side, API key never exposed to client
 - **Email:** Resend free tier; if `RESEND_API_KEY` not set, log payload to `outbox` table — app must work without email
 - **PDF:** `@react-pdf/renderer` or `pdf-lib` (server-side only)
 - **QR codes:** `qrcode` npm package

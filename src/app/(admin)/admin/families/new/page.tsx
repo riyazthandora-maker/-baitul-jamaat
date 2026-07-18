@@ -38,6 +38,7 @@ export default function NewFamilyPage() {
   const [headMemberId, setHeadMemberId] = useState("");
   const [rows, setRows] = useState<FamilyRow[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestedMembersList, setSuggestedMembersList] = useState<ActiveMember[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -70,17 +71,27 @@ export default function NewFamilyPage() {
   }
 
   async function handleSuggest() {
-    if (selectedIds.size < 2) {
-      setSuggestError("Select at least 2 members for a suggestion.");
-      return;
-    }
     setSuggestError(null);
     setSuggestLoading(true);
     try {
+      const supabase = createClient();
+      // Find members already grouped into a family
+      const { data: grouped } = await supabase
+        .from("family_members")
+        .select("member_id");
+      const groupedIds = new Set((grouped ?? []).map((r) => r.member_id));
+      const ungrouped = allMembers.filter((m) => !groupedIds.has(m.id));
+
+      if (ungrouped.length < 2) {
+        setSuggestError("Not enough ungrouped members (need at least 2) to generate suggestions.");
+        return;
+      }
+
+      setSuggestedMembersList(ungrouped);
       const res = await fetch("/api/admin/families/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ member_ids: [...selectedIds] }),
+        body: JSON.stringify({ member_ids: ungrouped.map((m) => m.id) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Suggestion failed");
@@ -92,19 +103,18 @@ export default function NewFamilyPage() {
     }
   }
 
-  function applySuggestion(s: Suggestion, membersList: ActiveMember[]) {
-    const selectedArr = [...selectedIds].map((id) => membersList.find((m) => m.id === id)!).filter(Boolean);
+  function applySuggestion(s: Suggestion) {
     setFamilyName(s.suggested_name);
-    const head = selectedArr[s.head_index];
+    const head = suggestedMembersList[s.head_index];
     if (head) setHeadMemberId(head.id);
-    setRows(
-      s.members
-        .filter((sm) => selectedArr[sm.index])
-        .map((sm) => ({
-          member_id: selectedArr[sm.index].id,
-          relationship: sm.relationship,
-        }))
-    );
+    const newRows = s.members
+      .filter((sm) => suggestedMembersList[sm.index])
+      .map((sm) => ({
+        member_id: suggestedMembersList[sm.index].id,
+        relationship: sm.relationship,
+      }));
+    setRows(newRows);
+    setSelectedIds(new Set(newRows.map((r) => r.member_id)));
     setStep(2);
   }
 
@@ -189,12 +199,14 @@ export default function NewFamilyPage() {
               <Sparkles className="w-5 h-5 text-brand-gold" />
               <h2 className="font-semibold text-gray-800">AI Suggestions (Optional)</h2>
             </div>
-            <p className="text-sm text-gray-500">Select 2+ members and let Gemini suggest family groupings based on names, ages, gender, and address.</p>
+            <p className="text-sm text-gray-500">
+              Click below — Gemini will automatically find members not yet in any family and suggest groupings based on names, ages, gender, and address.
+            </p>
             {suggestError && <p className="text-sm text-red-600">{suggestError}</p>}
             <button
               type="button"
               onClick={handleSuggest}
-              disabled={suggestLoading || selectedIds.size < 2}
+              disabled={suggestLoading}
               className="flex items-center gap-2 bg-brand-gold text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-gold-dark transition-colors disabled:opacity-60"
             >
               {suggestLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
@@ -203,39 +215,38 @@ export default function NewFamilyPage() {
 
             {suggestions.length > 0 && (
               <div className="space-y-3 mt-2">
-                <p className="text-xs text-gray-400 italic">These are suggestions only — review and edit before saving.</p>
-                {suggestions.map((s, i) => {
-                  const selectedArr = [...selectedIds].map((id) => allMembers.find((m) => m.id === id)!).filter(Boolean);
-                  return (
-                    <div key={i} className="border border-amber-200 rounded-lg p-4 space-y-2 bg-amber-50">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-medium text-gray-800">{s.suggested_name}</p>
-                          <p className="text-xs text-gray-500">Confidence: <span className="font-medium">{s.confidence}</span> — {s.confidence_note}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => applySuggestion(s, allMembers)}
-                          className="text-xs bg-brand-green text-white px-3 py-1 rounded-lg hover:bg-brand-green-dark transition-colors whitespace-nowrap"
-                        >
-                          Use This
-                        </button>
+                <p className="text-xs text-gray-400 italic">
+                  These are suggestions only — review and edit before saving. Based on {suggestedMembersList.length} ungrouped member(s).
+                </p>
+                {suggestions.map((s, i) => (
+                  <div key={i} className="border border-amber-200 rounded-lg p-4 space-y-2 bg-amber-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-gray-800">{s.suggested_name}</p>
+                        <p className="text-xs text-gray-500">Confidence: <span className="font-medium">{s.confidence}</span> — {s.confidence_note}</p>
                       </div>
-                      <ul className="text-sm space-y-1">
-                        {s.members.map((sm) => {
-                          const mem = selectedArr[sm.index];
-                          return mem ? (
-                            <li key={sm.index} className="flex items-center gap-2 text-gray-700">
-                              <span className="w-2 h-2 rounded-full bg-brand-green flex-shrink-0" />
-                              <span className="font-medium">{mem.full_name}</span>
-                              <span className="text-gray-400">→ {sm.relationship}</span>
-                            </li>
-                          ) : null;
-                        })}
-                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => applySuggestion(s)}
+                        className="text-xs bg-brand-green text-white px-3 py-1 rounded-lg hover:bg-brand-green-dark transition-colors whitespace-nowrap"
+                      >
+                        Use This
+                      </button>
                     </div>
-                  );
-                })}
+                    <ul className="text-sm space-y-1">
+                      {s.members.map((sm) => {
+                        const mem = suggestedMembersList[sm.index];
+                        return mem ? (
+                          <li key={sm.index} className="flex items-center gap-2 text-gray-700">
+                            <span className="w-2 h-2 rounded-full bg-brand-green flex-shrink-0" />
+                            <span className="font-medium">{mem.full_name}</span>
+                            <span className="text-gray-400">→ {sm.relationship}</span>
+                          </li>
+                        ) : null;
+                      })}
+                    </ul>
+                  </div>
+                ))}
               </div>
             )}
           </div>

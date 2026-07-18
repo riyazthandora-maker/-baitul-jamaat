@@ -33,6 +33,7 @@ export default function RegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrFrozen, setOcrFrozen] = useState(false);
   const [ocrDone, setOcrDone] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
   const personalSectionRef = useRef<HTMLElement>(null);
@@ -70,9 +71,38 @@ export default function RegisterPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function resetForm() {
+    setSubmitted(false);
+    setSubmitting(false);
+    setError(null);
+    setOcrLoading(false);
+    setOcrFrozen(false);
+    setOcrDone(false);
+    setOcrError(null);
+    setIdFrontFile(null);
+    setIdBackFile(null);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setForm({
+      full_name: "",
+      phone: "",
+      email: "",
+      dob: "",
+      gender: "",
+      address: "",
+      id_type: "",
+      id_last4: "",
+      qualification: "",
+    });
+    if (idFrontRef.current) idFrontRef.current.value = "";
+    if (idBackRef.current) idBackRef.current.value = "";
+    if (photoRef.current) photoRef.current.value = "";
+  }
+
   const runOcr = useCallback(
     async (front: File, back: File | null) => {
       setOcrLoading(true);
+      setOcrFrozen(true);
       setOcrDone(false);
       setOcrError(null);
       try {
@@ -106,6 +136,7 @@ export default function RegisterPage() {
         setOcrError("Document scan failed. Please fill in your details manually below.");
       } finally {
         setOcrLoading(false);
+        setOcrFrozen(false);
       }
     },
     [code]
@@ -184,6 +215,13 @@ export default function RegisterPage() {
             your membership. You will receive your member number and login
             details once approved.
           </p>
+          <button
+            type="button"
+            onClick={resetForm}
+            className="w-full border-2 border-brand-green text-brand-green py-3 rounded-xl font-semibold hover:bg-brand-green/5 transition-colors"
+          >
+            Register Another Member
+          </button>
         </div>
       </div>
     );
@@ -341,6 +379,11 @@ export default function RegisterPage() {
         <section ref={personalSectionRef} className="bg-white rounded-xl shadow-sm p-5 space-y-4">
           <h2 className="font-semibold text-brand-green flex items-center gap-2 text-lg">
             <User className="w-5 h-5" /> Personal Details
+            {ocrFrozen && (
+              <span className="ml-auto flex items-center gap-1.5 text-xs font-normal text-brand-green bg-brand-green/10 px-2 py-1 rounded-full">
+                <Loader2 className="w-3 h-3 animate-spin" /> Reading document…
+              </span>
+            )}
           </h2>
 
           <div>
@@ -353,7 +396,8 @@ export default function RegisterPage() {
               value={form.full_name}
               onChange={(e) => set("full_name", e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+              disabled={ocrFrozen}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
             />
           </div>
 
@@ -366,7 +410,8 @@ export default function RegisterPage() {
                 type="date"
                 value={form.dob}
                 onChange={(e) => set("dob", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+                disabled={ocrFrozen}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
               />
             </div>
             <div>
@@ -376,7 +421,8 @@ export default function RegisterPage() {
               <select
                 value={form.gender}
                 onChange={(e) => set("gender", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+                disabled={ocrFrozen}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
               >
                 <option value="">Select</option>
                 <option value="Male">Male</option>
@@ -395,7 +441,8 @@ export default function RegisterPage() {
               placeholder="Your home address"
               value={form.address}
               onChange={(e) => set("address", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green resize-none min-h-0"
+              disabled={ocrFrozen}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green resize-none min-h-0 disabled:opacity-50 disabled:cursor-wait"
             />
           </div>
 
@@ -407,7 +454,8 @@ export default function RegisterPage() {
               <select
                 value={form.id_type}
                 onChange={(e) => set("id_type", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+                disabled={ocrFrozen}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
               >
                 <option value="">Select</option>
                 <option value="aadhaar">Aadhaar</option>
@@ -430,7 +478,8 @@ export default function RegisterPage() {
                 onChange={(e) =>
                   set("id_last4", e.target.value.replace(/\D/g, ""))
                 }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+                disabled={ocrFrozen}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
               />
             </div>
           </div>

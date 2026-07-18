@@ -4,7 +4,7 @@ import { suggestFamilyGroupings } from "@/lib/gemini";
 import { z } from "zod";
 
 const SuggestSchema = z.object({
-  member_ids: z.array(z.string().uuid()).min(2).max(20),
+  member_ids: z.array(z.string().uuid()).min(2).max(100),
 });
 
 export async function POST(request: Request) {

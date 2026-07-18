@@ -8,7 +8,7 @@ Masjid Membership & Donation Management System — multi-tenant, mobile-first, b
 |-------|-----------|
 | Frontend / Backend | Next.js 14 (App Router, TypeScript, Tailwind CSS, shadcn/ui) |
 | Database / Auth / Storage | Supabase (Postgres + RLS + Auth + Storage) |
-| AI | Google Gemini API (`gemini-2.5-flash`) |
+| AI | Google Gemini API (`gemini-3.5-flash`) |
 | Email | Resend (optional; falls back to `outbox` table) |
 | PDF | `pdf-lib` (server-side) |
 | Maps | Leaflet + OpenStreetMap |
