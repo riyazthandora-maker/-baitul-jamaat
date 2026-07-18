@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Masjid } from "@/types/database";
 import Link from "next/link";
-import { Building2, Users, Plus, ToggleRight } from "lucide-react";
+import { Building2, Users, Plus, ToggleRight, ClipboardList } from "lucide-react";
 import ActiveToggle from "@/components/ActiveToggle";
 
 export default async function SuperAdminDashboard() {
@@ -17,6 +17,11 @@ export default async function SuperAdminDashboard() {
     .from("members")
     .select("masjid_id")
     .eq("status", "active") as { data: { masjid_id: string }[] | null };
+
+  const { count: pendingApplications } = await supabase
+    .from("masjid_applications")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending");
 
   const countMap: Record<string, number> = {};
   memberCounts?.forEach((m) => {
@@ -40,7 +45,7 @@ export default async function SuperAdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <Building2 className="w-8 h-8 text-brand-green" />
@@ -72,6 +77,25 @@ export default async function SuperAdminDashboard() {
             </div>
           </div>
         </div>
+        <Link
+          href="/superadmin/applications?status=pending"
+          className="bg-white rounded-xl border p-6 shadow-sm hover:border-amber-300 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <ClipboardList className="w-8 h-8 text-amber-500" />
+            <div>
+              <p className="text-sm text-gray-500">Pending Applications</p>
+              <p className={`text-2xl font-bold ${(pendingApplications ?? 0) > 0 ? "text-amber-600" : "text-gray-400"}`}>
+                {pendingApplications ?? 0}
+              </p>
+            </div>
+          </div>
+          {(pendingApplications ?? 0) > 0 && (
+            <p className="text-xs text-amber-600 mt-2 font-medium group-hover:underline">
+              Review now →
+            </p>
+          )}
+        </Link>
       </div>
 
       {/* Masjid list */}

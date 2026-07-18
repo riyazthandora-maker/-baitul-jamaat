@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MoonStar, Users, TrendingUp, FileText } from "lucide-react";
+import MasjidApplicationForm from "@/components/MasjidApplicationForm";
 
 export default function LandingPage() {
   return (
@@ -20,50 +21,75 @@ export default function LandingPage() {
       </div>
 
       {/* Main content */}
-      <div className="relative flex-1 flex flex-col items-center justify-center px-6 py-16 text-center">
-        {/* Logo */}
-        <div className="mb-8 flex flex-col items-center gap-4">
-          <div className="w-24 h-24 rounded-full bg-white/15 flex items-center justify-center ring-4 ring-white/20">
-            <MoonStar className="w-12 h-12 text-brand-gold" />
-          </div>
-          <div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
-              Baitul Jamaat
-            </h1>
-            <p className="mt-2 text-lg text-white/75">
-              Masjid Membership &amp; Donation Management
-            </p>
-          </div>
-        </div>
-
-        {/* Gold divider */}
-        <div className="w-16 h-1 rounded-full bg-brand-gold mb-10" />
-
-        {/* Features */}
-        <div className="grid sm:grid-cols-3 gap-5 max-w-2xl w-full mb-12">
-          {[
-            { icon: Users, label: "Member Register", desc: "Register, approve, and manage masjid members with ease" },
-            { icon: TrendingUp, label: "Revenue Programs", desc: "Set up recurring donation programs with automatic billing" },
-            { icon: FileText, label: "Receipts & Reports", desc: "Generate PDF receipts and monthly statements instantly" },
-          ].map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-left border border-white/15">
-              <Icon className="w-7 h-7 text-brand-gold mb-3" />
-              <p className="font-semibold text-white text-sm">{label}</p>
-              <p className="text-white/65 text-xs mt-1 leading-relaxed">{desc}</p>
+      <div className="relative flex-1 flex flex-col items-center px-6 py-16">
+        {/* Hero */}
+        <div className="flex flex-col items-center text-center w-full max-w-2xl">
+          {/* Logo */}
+          <div className="mb-8 flex flex-col items-center gap-4">
+            <div className="w-24 h-24 rounded-full bg-white/15 flex items-center justify-center ring-4 ring-white/20">
+              <MoonStar className="w-12 h-12 text-brand-gold" />
             </div>
-          ))}
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
+                Baitul Jamaat
+              </h1>
+              <p className="mt-2 text-lg text-white/75">
+                Masjid Membership &amp; Donation Management
+              </p>
+            </div>
+          </div>
+
+          {/* Gold divider */}
+          <div className="w-16 h-1 rounded-full bg-brand-gold mb-10" />
+
+          {/* Features */}
+          <div className="grid sm:grid-cols-3 gap-5 w-full mb-12">
+            {[
+              { icon: Users, label: "Member Register", desc: "Register, approve, and manage masjid members with ease" },
+              { icon: TrendingUp, label: "Revenue Programs", desc: "Set up recurring donation programs with automatic billing" },
+              { icon: FileText, label: "Receipts & Reports", desc: "Generate PDF receipts and monthly statements instantly" },
+            ].map(({ icon: Icon, label, desc }) => (
+              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-left border border-white/15">
+                <Icon className="w-7 h-7 text-brand-gold mb-3" />
+                <p className="font-semibold text-white text-sm">{label}</p>
+                <p className="text-white/65 text-xs mt-1 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Sign In CTA */}
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center gap-2 bg-brand-gold text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-lg hover:bg-brand-gold-dark transition-colors min-w-[200px]"
+          >
+            Sign In
+          </Link>
+          <p className="mt-4 text-white/50 text-xs">
+            For masjid administrators and members
+          </p>
         </div>
 
-        {/* CTA */}
-        <Link
-          href="/login"
-          className="inline-flex items-center justify-center gap-2 bg-brand-gold text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-lg hover:bg-brand-gold-dark transition-colors min-w-[200px]"
-        >
-          Sign In
-        </Link>
-        <p className="mt-4 text-white/50 text-xs">
-          For masjid administrators and members
-        </p>
+        {/* Register Masjid section */}
+        <div className="w-full max-w-xl mt-16">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="flex-1 h-px bg-white/20" />
+            <p className="text-white/60 text-sm font-medium whitespace-nowrap">
+              Register Your Masjid
+            </p>
+            <div className="flex-1 h-px bg-white/20" />
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-white mb-1">
+              Bring your masjid online
+            </h2>
+            <p className="text-white/60 text-sm mb-6 leading-relaxed">
+              Fill in your details and we will set up your masjid on Baitul Jamaat.
+              Our team will review your request and get back to you within a few days.
+            </p>
+            <MasjidApplicationForm />
+          </div>
+        </div>
       </div>
 
       {/* Footer */}

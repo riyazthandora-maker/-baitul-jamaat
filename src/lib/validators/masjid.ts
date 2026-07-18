@@ -12,6 +12,7 @@ export const masjidSchema = z.object({
     .max(6)
     .regex(/^[A-Z0-9]+$/, "Code must be uppercase letters/digits only"),
   upi_id: z.string().optional(),
+  contact_email: z.string().email("Invalid contact email").optional().or(z.literal("")),
   lat: z.number().min(-90).max(90).optional().nullable(),
   lng: z.number().min(-180).max(180).optional().nullable(),
   active: z.boolean().default(true),
@@ -22,3 +23,12 @@ export const masjidSchema = z.object({
 });
 
 export type MasjidFormValues = z.infer<typeof masjidSchema>;
+
+export const masjidApplicationSchema = z.object({
+  name: z.string().min(3, "Masjid name must be at least 3 characters"),
+  address: z.string().min(10, "Please provide a full address (min 10 characters)"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().regex(/^[0-9+\-\s()]{7,15}$/, "Invalid phone number"),
+});
+
+export type MasjidApplicationValues = z.infer<typeof masjidApplicationSchema>;

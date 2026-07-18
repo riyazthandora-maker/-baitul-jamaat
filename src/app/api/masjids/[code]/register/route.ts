@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { memberRegistrationSchema } from "@/lib/validators/member";
 import { detectDuplicates } from "@/lib/gemini";
+import { sendEmail } from "@/lib/email";
 
 export async function POST(
   request: NextRequest,
@@ -39,7 +40,7 @@ export async function POST(
     // Look up masjid
     const { data: masjid, error: masjidErr } = await supabase
       .from("masjids")
-      .select("id, masjid_code, name")
+      .select("id, masjid_code, name, contact_email")
       .eq("masjid_code", masjidCode)
       .maybeSingle();
 
@@ -159,6 +160,37 @@ export async function POST(
         { error: "Failed to submit registration" },
         { status: 500 }
       );
+    }
+
+    // Gap 6: notify masjid admin of the new pending registration
+    if (masjid.contact_email) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const flagNote = dupResult.classification === "possible_duplicate"
+        ? " <strong style='color:#b45309'>(flagged as possible duplicate — review carefully)</strong>"
+        : "";
+      await sendEmail({
+        to: masjid.contact_email,
+        subject: `New Member Registration — ${parsed.data.full_name} — ${masjid.name}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+            <h2 style="color:#166534">New Member Registration Pending</h2>
+            <p>A new member has registered and is awaiting your approval.</p>
+            <table style="border-collapse:collapse;width:100%;margin:16px 0">
+              <tr style="background:#f9fafb">
+                <td style="padding:10px 14px;font-weight:600;color:#374151;border:1px solid #e5e7eb">Name</td>
+                <td style="padding:10px 14px;border:1px solid #e5e7eb">${parsed.data.full_name}${flagNote}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 14px;font-weight:600;color:#374151;border:1px solid #e5e7eb">Phone</td>
+                <td style="padding:10px 14px;border:1px solid #e5e7eb">${parsed.data.phone}</td>
+              </tr>
+              ${parsed.data.email ? `<tr style="background:#f9fafb"><td style="padding:10px 14px;font-weight:600;color:#374151;border:1px solid #e5e7eb">Email</td><td style="padding:10px 14px;border:1px solid #e5e7eb">${parsed.data.email}</td></tr>` : ""}
+            </table>
+            ${appUrl ? `<p><a href="${appUrl}/admin/members" style="display:inline-block;background:#166534;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Review Now</a></p>` : ""}
+          </div>
+        `,
+        masjid_id: masjid.id,
+      });
     }
 
     return NextResponse.json({

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Building2, MapPin, Phone, CreditCard, User, Hash } from "lucide-react";
+import { Building2, MapPin, Phone, CreditCard, User, Hash, Bell } from "lucide-react";
 import CredentialsModal from "@/components/CredentialsModal";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
@@ -15,6 +15,7 @@ interface MasjidFormData {
   phone?: string;
   masjid_code?: string;
   upi_id?: string | null;
+  contact_email?: string | null;
   lat?: number | null;
   lng?: number | null;
   active?: boolean;
@@ -29,9 +30,16 @@ interface Credentials {
 interface Props {
   initialData?: MasjidFormData;
   isNew?: boolean;
+  applicationId?: string;
+  prefillData?: {
+    name?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+  };
 }
 
-export default function MasjidForm({ initialData, isNew = false }: Props) {
+export default function MasjidForm({ initialData, isNew = false, applicationId, prefillData }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +64,7 @@ export default function MasjidForm({ initialData, isNew = false }: Props) {
       phone: fd.get("phone") as string,
       masjid_code: masjidCode,
       upi_id: (fd.get("upi_id") as string) || null,
+      contact_email: (fd.get("contact_email") as string) || null,
       active: fd.get("active") === "on",
       lat,
       lng,
@@ -67,6 +76,7 @@ export default function MasjidForm({ initialData, isNew = false }: Props) {
           ...basePayload,
           admin_name: fd.get("admin_name") as string,
           admin_phone: fd.get("admin_phone") as string,
+          ...(applicationId ? { application_id: applicationId } : {}),
         }
       : basePayload;
 
@@ -128,7 +138,7 @@ export default function MasjidForm({ initialData, isNew = false }: Props) {
               </label>
               <input
                 name="name"
-                defaultValue={initialData?.name}
+                defaultValue={prefillData?.name ?? initialData?.name}
                 required
                 placeholder="e.g. Masjid Al-Noor"
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
@@ -141,7 +151,7 @@ export default function MasjidForm({ initialData, isNew = false }: Props) {
               </label>
               <textarea
                 name="address"
-                defaultValue={initialData?.address}
+                defaultValue={prefillData?.address ?? initialData?.address}
                 required
                 rows={2}
                 placeholder="Full address"
@@ -156,7 +166,7 @@ export default function MasjidForm({ initialData, isNew = false }: Props) {
               <input
                 name="phone"
                 type="tel"
-                defaultValue={initialData?.phone}
+                defaultValue={prefillData?.phone ?? initialData?.phone}
                 required
                 placeholder="e.g. 9876543210"
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
@@ -198,6 +208,22 @@ export default function MasjidForm({ initialData, isNew = false }: Props) {
                 placeholder="e.g. masjid@okaxis"
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                <Bell className="w-3.5 h-3.5" /> Contact Email
+              </label>
+              <input
+                name="contact_email"
+                type="email"
+                defaultValue={prefillData?.email ?? initialData?.contact_email ?? ""}
+                placeholder="e.g. admin@masjid.com"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+              />
+              <p className="text-xs text-gray-400">
+                Used for notification emails: new member registrations, monthly statements.
+              </p>
             </div>
 
             <div className="flex items-center gap-3 pt-2">

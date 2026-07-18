@@ -26,6 +26,7 @@ export interface Database {
           masjid_code: string;
           member_seq: number;
           receipt_seq: number;
+          contact_email: string | null;
         };
         Insert: {
           id?: string;
@@ -40,6 +41,7 @@ export interface Database {
           masjid_code: string;
           member_seq?: number;
           receipt_seq?: number;
+          contact_email?: string | null;
         };
         Update: {
           id?: string;
@@ -54,6 +56,7 @@ export interface Database {
           masjid_code?: string;
           member_seq?: number;
           receipt_seq?: number;
+          contact_email?: string | null;
         };
         Relationships: [];
       };
@@ -433,6 +436,38 @@ export interface Database {
         };
         Relationships: [];
       };
+      masjid_applications: {
+        Row: {
+          id: string;
+          created_at: string;
+          name: string;
+          address: string;
+          email: string;
+          phone: string;
+          status: "pending" | "approved" | "rejected";
+          reviewed_at: string | null;
+          notes: string | null;
+          ip_hash: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          name: string;
+          address: string;
+          email: string;
+          phone: string;
+          status?: "pending" | "approved" | "rejected";
+          reviewed_at?: string | null;
+          notes?: string | null;
+          ip_hash?: string | null;
+        };
+        Update: {
+          status?: "pending" | "approved" | "rejected";
+          reviewed_at?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -469,5 +504,6 @@ export type Enrollment = Database["public"]["Tables"]["enrollments"]["Row"];
 export type Receipt = Database["public"]["Tables"]["receipts"]["Row"];
 export type LedgerEntry = Database["public"]["Tables"]["ledger"]["Row"];
 export type Donation = Database["public"]["Tables"]["donations"]["Row"];
+export type MasjidApplication = Database["public"]["Tables"]["masjid_applications"]["Row"];
 export type Family = Database["public"]["Tables"]["families"]["Row"];
 export type FamilyMember = Database["public"]["Tables"]["family_members"]["Row"];
