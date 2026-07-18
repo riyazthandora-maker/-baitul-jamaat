@@ -57,7 +57,7 @@ export default async function AdminMembersPage({
 
     for (const e of ledgerRows ?? []) {
       const prev = balanceMap.get(e.member_id) ?? 0;
-      balanceMap.set(e.member_id, e.type === "charge" ? prev + Number(e.amount) : prev - Number(e.amount));
+      balanceMap.set(e.member_id, (e.type === "charge" || e.type === "opening_balance") ? prev + Number(e.amount) : prev - Number(e.amount));
     }
   }
 

@@ -27,7 +27,7 @@ export default function LedgerList({ entries }: { entries: Entry[] }) {
       {visible.map((e) => (
         <div
           key={e.id}
-          className={`flex items-center gap-3 py-2.5 ${e.voided_at ? "opacity-40 line-through" : ""}`}
+          className={`flex items-center gap-3 py-2.5 px-1 ${e.voided_at ? "opacity-40 line-through" : ""}`}
         >
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">
@@ -41,8 +41,8 @@ export default function LedgerList({ entries }: { entries: Entry[] }) {
               {e.void_reason && ` — voided: ${e.void_reason}`}
             </p>
           </div>
-          <p className={`font-semibold flex-shrink-0 ${e.type === "charge" ? "text-red-600" : "text-brand-green"}`}>
-            {e.type === "charge" ? "+" : "−"} ₹{Number(e.amount).toFixed(0)}
+          <p className={`font-semibold flex-shrink-0 ${(e.type === "charge" || e.type === "opening_balance") ? "text-red-600" : "text-brand-green"}`}>
+            {(e.type === "charge" || e.type === "opening_balance") ? "+" : "−"} ₹{Number(e.amount).toFixed(0)}
           </p>
           {!e.voided_at && e.type !== "payment" && (
             <VoidButton endpoint={`/api/admin/ledger/${e.id}/void`} />

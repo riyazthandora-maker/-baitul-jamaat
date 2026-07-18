@@ -24,7 +24,7 @@ export async function PATCH(
   }
 
   // Only allow safe fields to be updated via PATCH
-  const allowedFields = ["name", "address", "phone", "upi_id", "lat", "lng", "active"];
+  const allowedFields = ["name", "address", "phone", "upi_id", "contact_email", "lat", "lng", "active"];
   const update: Record<string, unknown> = {};
   for (const key of allowedFields) {
     if (key in body) update[key] = body[key];

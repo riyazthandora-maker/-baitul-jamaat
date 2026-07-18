@@ -35,9 +35,9 @@ export default async function MasjidsPage() {
             {masjids.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-brand-green/10 flex items-center justify-center flex-shrink-0">
                     <Building2 className="w-5 h-5 text-brand-green" />
                   </div>
@@ -59,7 +59,7 @@ export default async function MasjidsPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-2 sm:ml-4">
                   <ActiveToggle masjidId={m.id} active={m.active} />
                   <Link
                     href={`/superadmin/masjids/${m.id}/edit`}

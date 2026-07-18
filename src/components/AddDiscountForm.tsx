@@ -55,7 +55,7 @@ export default function AddDiscountForm({ memberId }: { memberId: string }) {
 
       {open && (
         <form onSubmit={handleSubmit} className="px-5 pb-5 space-y-3 border-t">
-          <div className="grid grid-cols-2 gap-3 pt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Amount (₹) *</label>
               <input

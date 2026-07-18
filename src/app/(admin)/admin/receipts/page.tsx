@@ -25,18 +25,18 @@ export default async function ReceiptsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
         <h1 className="text-2xl font-bold text-brand-green">Receipts & Donations</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Link
             href="/admin/donations/new"
-            className="flex items-center gap-2 border border-brand-gold text-brand-gold px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-gold/5 transition-colors"
+            className="flex items-center justify-center gap-2 border border-brand-gold text-brand-gold px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-brand-gold/5 transition-colors"
           >
             <Heart className="w-4 h-4" /> Record Donation
           </Link>
           <Link
             href="/admin/receipts/new"
-            className="flex items-center gap-2 bg-brand-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
+            className="flex items-center justify-center gap-2 bg-brand-green text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
           >
             <Plus className="w-4 h-4" /> Record Payment
           </Link>

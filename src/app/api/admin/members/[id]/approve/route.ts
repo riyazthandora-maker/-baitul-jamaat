@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { generateTempPassword } from "@/lib/utils";
+import { sendEmail } from "@/lib/email";
 
 export async function POST(
   request: NextRequest,
@@ -98,6 +99,48 @@ export async function POST(
       { error: "Failed to update member record" },
       { status: 500 }
     );
+  }
+
+  // Gap 7: email credentials to the member if they have an email address
+  if (member.email) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    // Fetch masjid name for the email
+    const { data: masjid } = await adminSupabase
+      .from("masjids")
+      .select("name")
+      .eq("id", masjidId)
+      .maybeSingle();
+
+    await sendEmail({
+      to: member.email,
+      subject: `Your Membership Has Been Approved — ${masjid?.name ?? "Baitul Jamaat"}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+          <h2 style="color:#166534">Membership Approved</h2>
+          <p>Assalamu Alaikum <strong>${member.full_name}</strong>,</p>
+          <p>Your membership at <strong>${masjid?.name ?? "the masjid"}</strong> has been approved. Here are your account details:</p>
+          <table style="border-collapse:collapse;width:100%;margin:16px 0">
+            <tr style="background:#f9fafb">
+              <td style="padding:10px 14px;font-weight:600;color:#374151;border:1px solid #e5e7eb">Member Number</td>
+              <td style="padding:10px 14px;border:1px solid #e5e7eb;font-family:monospace">${memberNum}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;font-weight:600;color:#374151;border:1px solid #e5e7eb">Login Phone</td>
+              <td style="padding:10px 14px;border:1px solid #e5e7eb">${member.phone}</td>
+            </tr>
+            <tr style="background:#f9fafb">
+              <td style="padding:10px 14px;font-weight:600;color:#374151;border:1px solid #e5e7eb">Temporary Password</td>
+              <td style="padding:10px 14px;border:1px solid #e5e7eb;font-family:monospace">${tempPassword}</td>
+            </tr>
+          </table>
+          <p style="color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:8px">
+            You will be asked to set a new password on your first login.
+          </p>
+          ${appUrl ? `<p><a href="${appUrl}/login" style="display:inline-block;background:#166534;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Sign In Now</a></p>` : ""}
+        </div>
+      `,
+      masjid_id: masjidId,
+    });
   }
 
   return NextResponse.json({

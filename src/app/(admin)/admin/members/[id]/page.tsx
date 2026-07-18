@@ -5,9 +5,11 @@ import { AlertTriangle, ArrowLeft, Receipt, TrendingDown, FileText } from "lucid
 import ApproveRejectButtons from "@/components/ApproveRejectButtons";
 import VoidButton from "@/components/VoidButton";
 import AddDiscountForm from "@/components/AddDiscountForm";
+import OpeningBalanceForm from "@/components/OpeningBalanceForm";
 import StatementActions from "@/components/StatementActions";
 import LedgerList from "@/components/LedgerList";
 import MemberStatusToggle from "@/components/MemberStatusToggle";
+import MemberResetPasswordButton from "@/components/MemberResetPasswordButton";
 
 export default async function MemberReviewPage({
   params,
@@ -52,8 +54,10 @@ export default async function MemberReviewPage({
 
   const activeEntries = (ledgerEntries ?? []).filter((e) => !e.voided_at);
   const balance = activeEntries.reduce((sum, e) => {
-    return e.type === "charge" ? sum + Number(e.amount) : sum - Number(e.amount);
+    return (e.type === "charge" || e.type === "opening_balance") ? sum + Number(e.amount) : sum - Number(e.amount);
   }, 0);
+  const openingBalance = activeEntries.find((e) => e.type === "opening_balance");
+  const currentOpeningBalance = openingBalance ? Number(openingBalance.amount) : 0;
 
   // Receipts for this member
   const { data: receipts } = await supabase
@@ -130,11 +134,9 @@ export default async function MemberReviewPage({
           <dl className="space-y-3">
             {fields.map(({ label, value }) =>
               value ? (
-                <div key={label} className="grid grid-cols-2 gap-2 text-sm">
-                  <dt className="text-gray-400">{label}</dt>
-                  <dd className="text-gray-800 font-medium break-words">
-                    {value}
-                  </dd>
+                <div key={label} className="text-sm">
+                  <dt className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">{label}</dt>
+                  <dd className="text-gray-800 font-medium break-words">{value}</dd>
                 </div>
               ) : null
             )}
@@ -227,14 +229,16 @@ export default async function MemberReviewPage({
 
       {/* Balance summary */}
       {member.status === "active" && (
-        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center justify-between">
-          <p className="text-gray-500 text-sm">Outstanding Balance</p>
-          <p className={`text-2xl font-bold ${balance > 0 ? "text-red-600" : "text-brand-green"}`}>
-            ₹{balance.toFixed(2)}
-          </p>
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-gray-500 text-sm">Outstanding Balance</p>
+            <p className={`text-2xl font-bold ${balance > 0 ? "text-red-600" : "text-brand-green"}`}>
+              ₹{balance.toFixed(2)}
+            </p>
+          </div>
           <Link
             href={`/admin/receipts/new?member_id=${id}`}
-            className="flex items-center gap-1.5 bg-brand-green text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
+            className="flex items-center gap-1.5 bg-brand-green text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
           >
             <Receipt className="w-4 h-4" /> Record Payment
           </Link>
@@ -244,6 +248,16 @@ export default async function MemberReviewPage({
       {/* Add discount */}
       {member.status === "active" && (
         <AddDiscountForm memberId={id} />
+      )}
+
+      {/* Opening balance for data migration */}
+      {member.status === "active" && (
+        <OpeningBalanceForm memberId={id} currentBalance={currentOpeningBalance} />
+      )}
+
+      {/* Reset member password */}
+      {member.status === "active" && member.profile_id && (
+        <MemberResetPasswordButton memberId={id} />
       )}
 
       {/* Ledger */}

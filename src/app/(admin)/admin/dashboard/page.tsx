@@ -65,7 +65,7 @@ export default async function AdminDashboard() {
         {masjid?.name ?? "Dashboard"}
       </h1>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Link
           href="/admin/members?status=pending"
           className="bg-white rounded-xl shadow-sm p-5 border border-amber-100 hover:shadow-md transition-shadow"
@@ -102,7 +102,7 @@ export default async function AdminDashboard() {
       </Suspense>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Link
           href="/admin/programs"
           className="bg-white rounded-xl shadow-sm p-4 border border-brand-green/10 hover:shadow-md transition-shadow flex items-center gap-3"
@@ -126,7 +126,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Statement download */}
-      <div className="bg-white rounded-xl shadow-sm p-5 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
         <div>
           <p className="font-semibold text-gray-700">Monthly Statement</p>
           <p className="text-sm text-gray-400">Download current month&apos;s outstanding PDF</p>
@@ -134,7 +134,7 @@ export default async function AdminDashboard() {
         <a
           href="/api/admin/statements"
           target="_blank"
-          className="flex items-center gap-2 bg-brand-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
+          className="flex items-center justify-center gap-2 bg-brand-green text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
         >
           <Download className="w-4 h-4" /> Download
         </a>

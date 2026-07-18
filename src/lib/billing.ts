@@ -186,7 +186,7 @@ export async function getMemberBalance(
   if (!data) return 0;
 
   return data.reduce((sum, entry) => {
-    if (entry.type === "charge") return sum + Number(entry.amount);
+    if (entry.type === "charge" || entry.type === "opening_balance") return sum + Number(entry.amount);
     return sum - Number(entry.amount);
   }, 0);
 }
