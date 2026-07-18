@@ -129,14 +129,16 @@ export async function generateReceiptPdf(receipt: {
 export async function generateStatementPdf(statement: {
   masjid: { name: string; address: string };
   month: string; // e.g. "June 2026"
+  total_outstanding?: number; // shown as footer total when provided
   members: Array<{
     full_name: string;
     member_number: string | null;
     phone: string;
+    opening_balance?: number; // balance before this period
     charges: number;
     discounts: number;
     payments: number;
-    balance: number;
+    balance: number; // closing balance (or all-time balance for on-demand)
     entries: Array<{
       created_at: string;
       type: string;
@@ -168,8 +170,10 @@ export async function generateStatementPdf(statement: {
 
   let { page, width, y } = addPage();
 
+  const showOpeningBalance = statement.members.some((m) => m.opening_balance !== undefined);
+
   for (const member of statement.members) {
-    if (y < 160) {
+    if (y < 180) {
       ({ page, width, y } = addPage());
     }
 
@@ -180,8 +184,9 @@ export async function generateStatementPdf(statement: {
       page.drawText(member.member_number, { x: 46, y: y - 1, size: 8, font: regular, color: GRAY });
     }
     const balColor = member.balance > 0 ? rgb(0.8, 0.1, 0.1) : GREEN;
-    page.drawText(`Balance: ${fmt(member.balance)}`, {
-      x: width - 180,
+    const balLabel = showOpeningBalance ? "Closing Balance:" : "Balance:";
+    page.drawText(`${balLabel} ${fmt(member.balance)}`, {
+      x: width - 200,
       y: y + 6,
       size: 11,
       font: bold,
@@ -189,7 +194,18 @@ export async function generateStatementPdf(statement: {
     });
     y -= 34;
 
-    // Ledger entries
+    // Opening balance row (monthly statement only)
+    if (member.opening_balance !== undefined) {
+      if (y < 80) ({ page, width, y } = addPage());
+      page.drawText("Opening Balance (brought forward)", { x: 50, y, size: 8, font: regular, color: GRAY });
+      const obColor = member.opening_balance > 0 ? rgb(0.7, 0.1, 0.1) : GREEN;
+      page.drawText(fmt(member.opening_balance), { x: width - 150, y, size: 8, font: bold, color: obColor });
+      y -= 12;
+      drawHRule(page, y, width, GRAY);
+      y -= 10;
+    }
+
+    // Ledger entries for the period
     for (const entry of member.entries.slice(0, 8)) {
       if (y < 80) {
         ({ page, width, y } = addPage());
@@ -209,6 +225,7 @@ export async function generateStatementPdf(statement: {
     }
 
     // Summary row
+    if (y < 60) ({ page, width, y } = addPage());
     page.drawText(
       `Charges: ${fmt(member.charges)}   Discounts: ${fmt(member.discounts)}   Payments: ${fmt(member.payments)}`,
       { x: 50, y, size: 8, font: regular, color: GRAY }
@@ -216,6 +233,24 @@ export async function generateStatementPdf(statement: {
     y -= 20;
     drawHRule(page, y, width);
     y -= 16;
+  }
+
+  // Total outstanding footer (monthly statement only)
+  if (statement.total_outstanding !== undefined) {
+    if (y < 60) ({ page, width, y } = addPage());
+    y -= 8;
+    page.drawRectangle({ x: 38, y: y - 12, width: width - 76, height: 30, color: rgb(0.94, 0.98, 0.95) });
+    page.drawText("TOTAL OUTSTANDING — ALL MEMBERS", { x: 46, y: y + 4, size: 9, font: bold, color: GREEN });
+    const totalColor = statement.total_outstanding > 0 ? rgb(0.8, 0.1, 0.1) : GREEN;
+    page.drawText(fmt(statement.total_outstanding), {
+      x: width - 160,
+      y: y + 4,
+      size: 12,
+      font: bold,
+      color: totalColor,
+    });
+    y -= 22;
+    drawHRule(page, y, width, GOLD);
   }
 
   return doc.save();
