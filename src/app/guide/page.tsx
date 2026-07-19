@@ -131,7 +131,7 @@ const memberSteps: Step[] = [
       "'Submit' ക്ലിക്ക് ചെയ്ത് Admin Approval-ന് കാത്തിരിക്കുക.",
     ],
     tip: "Approval കഴിഞ്ഞാൽ Member ID (M-XXX-XXXX), Temp Password SMS/WhatsApp-ൽ ലഭിക്കും.",
-    warning: "⚠️ ഒരേ ഫോൺ നമ്പർ ഒരിക്കൽ മാത്രം Register ചെയ്യാൻ കഴിയൂ.",
+    warning: "⚠️ ഒരേ ഫോൺ നമ്പർ ഉപയോഗിച്ച് Register ചെയ്യാൻ ശ്രമിച്ചാൽ Possible Duplicate ആയി Flag ചെയ്യും — Admin Review ചെയ്ത് Approve ചെയ്യും.",
   },
   {
     icon: <LogIn className="w-6 h-6" />,
