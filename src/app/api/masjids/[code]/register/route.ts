@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { memberRegistrationSchema } from "@/lib/validators/member";
 import { detectDuplicates } from "@/lib/gemini";
 import { sendEmail } from "@/lib/email";
@@ -37,6 +38,12 @@ export async function POST(
 
     const supabase = await createAdminClient();
 
+    // Raw service-role client — needed for storage uploads (SSR client doesn't bypass storage RLS)
+    const storageClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Look up masjid
     const { data: masjid, error: masjidErr } = await supabase
       .from("masjids")
@@ -57,7 +64,7 @@ export async function POST(
 
     async function uploadFile(file: File, path: string): Promise<string | null> {
       const bytes = await file.arrayBuffer();
-      const { error } = await supabase.storage
+      const { error } = await storageClient.storage
         .from("member-documents")
         .upload(path, bytes, { contentType: file.type, upsert: true });
       if (error) {
