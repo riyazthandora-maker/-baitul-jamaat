@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import MemberSignOutButton from "@/components/MemberSignOutButton";
 import PayButton from "@/components/PayButton";
 import { getMemberBalance } from "@/lib/billing";
+import Link from "next/link";
 
 export default async function MemberDashboard() {
   const supabase = await createClient();
@@ -63,7 +64,16 @@ export default async function MemberDashboard() {
             </p>
           )}
         </div>
-        <MemberSignOutButton />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/guide"
+            className="text-white/70 hover:text-white transition-colors p-1"
+            title="User Guide"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          </Link>
+          <MemberSignOutButton />
+        </div>
       </div>
 
       <div className="max-w-lg mx-auto p-4 space-y-4 pb-12">
