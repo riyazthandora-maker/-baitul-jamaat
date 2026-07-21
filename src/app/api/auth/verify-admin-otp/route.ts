@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
 
   const cookieStore = await cookies();
   const ctx = cookieStore.get("otp_ctx")?.value;
+
   if (!ctx) {
+    console.error("[verify-otp] otp_ctx cookie missing");
     return NextResponse.json(
       { error: "Session expired. Please log in again." },
       { status: 401 }
@@ -22,6 +24,7 @@ export async function POST(request: NextRequest) {
 
   const parsed = parseOtpCtx(ctx);
   if (!parsed) {
+    console.error("[verify-otp] parseOtpCtx failed — cookie invalid or expired");
     return NextResponse.json(
       { error: "Session expired. Please log in again." },
       { status: 401 }
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
   const { userId } = parsed;
   const adminClient = await createAdminClient();
 
-  const { data: otp } = await adminClient
+  const { data: otp, error: otpErr } = await adminClient
     .from("admin_otps")
     .select("id, code_hash, attempts")
     .eq("user_id", userId)
@@ -41,7 +44,12 @@ export async function POST(request: NextRequest) {
     .limit(1)
     .maybeSingle();
 
+  if (otpErr) {
+    console.error("[verify-otp] DB query error:", otpErr.message);
+  }
+
   if (!otp) {
+    console.error("[verify-otp] No valid OTP found for userId:", userId);
     return NextResponse.json(
       { error: "Code has expired. Please log in again." },
       { status: 401 }
@@ -62,41 +70,48 @@ export async function POST(request: NextRequest) {
       .eq("id", otp.id);
 
     const remaining = 4 - otp.attempts;
+    console.error(`[verify-otp] Code mismatch for userId: ${userId}, attempts now: ${otp.attempts + 1}`);
     return NextResponse.json(
       { error: `Incorrect code. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.` },
       { status: 400 }
     );
   }
 
-  // Mark OTP used and clear cookie
+  // OTP accepted — mark used and clear cookie
   await adminClient.from("admin_otps").update({ used: true }).eq("id", otp.id);
   cookieStore.delete("otp_ctx");
 
-  // Get the user's auth email alias
+  // Get user's email alias for the magic link
   const {
     data: { user },
+    error: userErr,
   } = await adminClient.auth.admin.getUserById(userId);
 
-  if (!user?.email) {
+  if (userErr || !user?.email) {
+    console.error("[verify-otp] getUserById failed:", userErr?.message);
     return NextResponse.json({ error: "User not found." }, { status: 500 });
   }
 
-  // Generate a one-time magic-link token so the client can establish the session
+  // Use Supabase's magic link flow so the /auth/callback route can
+  // call exchangeCodeForSession and establish a proper SSR session.
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
+
   const { data: linkData, error: linkError } =
     await adminClient.auth.admin.generateLink({
       type: "magiclink",
       email: user.email,
+      options: { redirectTo: `${appUrl}/auth/callback` },
     });
 
-  if (linkError || !linkData?.properties?.hashed_token) {
+  if (linkError || !linkData?.properties?.action_link) {
+    console.error("[verify-otp] generateLink failed:", linkError?.message);
     return NextResponse.json(
       { error: "Login failed. Please try again." },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({
-    token: linkData.properties.hashed_token,
-    emailAlias: user.email,
-  });
+  return NextResponse.json({ actionLink: linkData.properties.action_link });
 }

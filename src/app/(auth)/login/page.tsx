@@ -3,7 +3,6 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import { MoonStar, Eye, EyeOff, User, Phone, Mail, RefreshCw, ArrowLeft } from "lucide-react";
 import { loginAction, memberLoginAction } from "./actions";
-import { createClient } from "@/lib/supabase/client";
 
 type Tab = "member" | "staff";
 
@@ -95,35 +94,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Establish Supabase session client-side using the one-time magic token
-      const supabase = createClient();
-      const { data: verifyData, error: verifyError } =
-        await supabase.auth.verifyOtp({
-          email: data.emailAlias,
-          token: data.token,
-          type: "magiclink",
-        });
-
-      if (verifyError || !verifyData.user) {
-        setOtpError("Login failed. Please try again.");
-        setOtpPending(false);
-        return;
-      }
-
-      const role = verifyData.user.app_metadata?.role;
-      const forceChange = verifyData.user.app_metadata?.force_password_change;
-
-      if (forceChange) {
-        window.location.href = "/change-password";
-        return;
-      }
-      if (role === "super_admin") {
-        window.location.href = "/superadmin/dashboard";
-      } else if (role === "masjid_admin") {
-        window.location.href = "/admin/dashboard";
-      } else {
-        window.location.href = "/login";
-      }
+      // Navigate to Supabase magic-link URL → /auth/callback exchanges
+      // the code for a proper SSR session and redirects to dashboard.
+      window.location.href = data.actionLink;
     } catch {
       setOtpError("Network error. Please check your connection.");
       setOtpPending(false);

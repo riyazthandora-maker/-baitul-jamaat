@@ -30,7 +30,7 @@ async function initiateOtp(
 ): Promise<void> {
   const adminClient = await createAdminClient();
   const { code, codeHash } = generateOtp();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
   await adminClient.from("admin_otps").insert({
     user_id: userId,

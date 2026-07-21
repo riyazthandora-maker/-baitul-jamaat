@@ -76,7 +76,7 @@ export async function POST(_request: NextRequest) {
 
   // Generate fresh OTP
   const { code, codeHash } = generateOtp();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
   await adminClient.from("admin_otps").insert({
     user_id: userId,
