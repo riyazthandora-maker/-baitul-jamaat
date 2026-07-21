@@ -92,9 +92,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "User not found." }, { status: 500 });
   }
 
-  // Derive origin from the incoming request so this works on any host
-  // (local dev, staging, production) without requiring NEXT_PUBLIC_APP_URL.
-  const appUrl = request.nextUrl.origin;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
   const { data: linkData, error: linkError } =
     await adminClient.auth.admin.generateLink({
