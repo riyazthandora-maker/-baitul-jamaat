@@ -100,15 +100,24 @@ export async function POST(request: NextRequest) {
     email: user.email,
   });
 
-  if (linkError || !linkData?.properties?.hashed_token) {
+  if (linkError || !linkData?.properties?.action_link) {
     console.error("[verify-otp] generateLink failed:", linkError?.message);
+    return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
+  }
+
+  // verifyOtp expects the raw (unhashed) token — extract it from the action_link URL.
+  const actionUrl = new URL(linkData.properties.action_link);
+  const rawToken = actionUrl.searchParams.get("token");
+
+  if (!rawToken) {
+    console.error("[verify-otp] Could not extract token from action_link");
     return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
   }
 
   const supabase = await createClient();
   const { data: sessionData, error: sessionError } = await supabase.auth.verifyOtp({
     email: user.email,
-    token: linkData.properties.hashed_token,
+    token: rawToken,
     type: "magiclink",
   });
 
