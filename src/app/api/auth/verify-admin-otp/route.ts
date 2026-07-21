@@ -92,11 +92,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "User not found." }, { status: 500 });
   }
 
-  // Use Supabase's magic link flow so the /auth/callback route can
-  // call exchangeCodeForSession and establish a proper SSR session.
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
+  // Derive origin from the incoming request so this works on any host
+  // (local dev, staging, production) without requiring NEXT_PUBLIC_APP_URL.
+  const appUrl = request.nextUrl.origin;
 
   const { data: linkData, error: linkError } =
     await adminClient.auth.admin.generateLink({
