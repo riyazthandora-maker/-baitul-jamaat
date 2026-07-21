@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { parseOtpCtx, hashCode } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
@@ -92,12 +92,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "User not found." }, { status: 500 });
   }
 
-  // Generate a disposable magic-link token and verify it server-side so that
-  // the SSR session cookies are set directly on this response — the client
-  // never needs to navigate through Supabase's redirect chain.
+  // Generate a magic link — the client will navigate to this URL; Supabase
+  // redirects to /auth/callback with the session tokens in the URL hash,
+  // and the client-side callback page calls setSession() to persist them.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: "magiclink",
     email: user.email,
+    options: { redirectTo: `${appUrl}/auth/callback` },
   });
 
   if (linkError || !linkData?.properties?.action_link) {
@@ -105,32 +108,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
   }
 
-  // verifyOtp expects the raw (unhashed) token — extract it from the action_link URL.
-  const actionUrl = new URL(linkData.properties.action_link);
-  const rawToken = actionUrl.searchParams.get("token");
-
-  if (!rawToken) {
-    console.error("[verify-otp] Could not extract token from action_link");
-    return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
-  }
-
-  const supabase = await createClient();
-  const { data: sessionData, error: sessionError } = await supabase.auth.verifyOtp({
-    email: user.email,
-    token: rawToken,
-    type: "magiclink",
-  });
-
-  if (sessionError || !sessionData.session) {
-    console.error("[verify-otp] verifyOtp failed:", sessionError?.message, sessionError?.status);
-    return NextResponse.json({ error: `verifyOtp: ${sessionError?.message ?? "no session returned"}` }, { status: 500 });
-  }
-
-  const role = sessionData.user?.app_metadata?.role as string | undefined;
-  const forceChange = !!sessionData.user?.app_metadata?.force_password_change;
-
-  if (forceChange) return NextResponse.json({ redirect: "/change-password" });
-  if (role === "super_admin") return NextResponse.json({ redirect: "/superadmin/dashboard" });
-  if (role === "masjid_admin") return NextResponse.json({ redirect: "/admin/dashboard" });
-  return NextResponse.json({ redirect: "/login" });
+  return NextResponse.json({ actionLink: linkData.properties.action_link });
 }
