@@ -94,9 +94,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Navigate to Supabase magic-link URL → /auth/callback exchanges
-      // the code for a proper SSR session and redirects to dashboard.
-      window.location.href = data.actionLink;
+      window.location.href = data.redirect;
     } catch {
       setOtpError("Network error. Please check your connection.");
       setOtpPending(false);

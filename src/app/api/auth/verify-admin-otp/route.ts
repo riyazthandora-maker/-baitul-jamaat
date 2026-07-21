@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { parseOtpCtx, hashCode } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
   await adminClient.from("admin_otps").update({ used: true }).eq("id", otp.id);
   cookieStore.delete("otp_ctx");
 
-  // Get user's email alias for the magic link
+  // Get user details
   const {
     data: { user },
     error: userErr,
@@ -92,22 +92,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "User not found." }, { status: 500 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  // Generate a disposable magic-link token and verify it server-side so that
+  // the SSR session cookies are set directly on this response — the client
+  // never needs to navigate through Supabase's redirect chain.
+  const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    type: "magiclink",
+    email: user.email,
+  });
 
-  const { data: linkData, error: linkError } =
-    await adminClient.auth.admin.generateLink({
-      type: "magiclink",
-      email: user.email,
-      options: { redirectTo: `${appUrl}/auth/callback` },
-    });
-
-  if (linkError || !linkData?.properties?.action_link) {
+  if (linkError || !linkData?.properties?.hashed_token) {
     console.error("[verify-otp] generateLink failed:", linkError?.message);
-    return NextResponse.json(
-      { error: "Login failed. Please try again." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
   }
 
-  return NextResponse.json({ actionLink: linkData.properties.action_link });
+  const supabase = await createClient();
+  const { data: sessionData, error: sessionError } = await supabase.auth.verifyOtp({
+    email: user.email,
+    token: linkData.properties.hashed_token,
+    type: "magiclink",
+  });
+
+  if (sessionError || !sessionData.session) {
+    console.error("[verify-otp] verifyOtp failed:", sessionError?.message);
+    return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
+  }
+
+  const role = sessionData.user?.app_metadata?.role as string | undefined;
+  const forceChange = !!sessionData.user?.app_metadata?.force_password_change;
+
+  if (forceChange) return NextResponse.json({ redirect: "/change-password" });
+  if (role === "super_admin") return NextResponse.json({ redirect: "/superadmin/dashboard" });
+  if (role === "masjid_admin") return NextResponse.json({ redirect: "/admin/dashboard" });
+  return NextResponse.json({ redirect: "/login" });
 }
