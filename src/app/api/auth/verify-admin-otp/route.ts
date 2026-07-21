@@ -122,8 +122,8 @@ export async function POST(request: NextRequest) {
   });
 
   if (sessionError || !sessionData.session) {
-    console.error("[verify-otp] verifyOtp failed:", sessionError?.message);
-    return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
+    console.error("[verify-otp] verifyOtp failed:", sessionError?.message, sessionError?.status);
+    return NextResponse.json({ error: `verifyOtp: ${sessionError?.message ?? "no session returned"}` }, { status: 500 });
   }
 
   const role = sessionData.user?.app_metadata?.role as string | undefined;
