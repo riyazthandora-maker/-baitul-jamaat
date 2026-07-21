@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { MoonStar, Eye, EyeOff, User, Phone } from "lucide-react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import { MoonStar, Eye, EyeOff, User, Phone, Mail, RefreshCw, ArrowLeft } from "lucide-react";
 import { loginAction, memberLoginAction } from "./actions";
+import { createClient } from "@/lib/supabase/client";
 
 type Tab = "member" | "staff";
+
+type OtpState = {
+  maskedEmail: string;
+};
+
+const RESEND_COOLDOWN = 60; // seconds
 
 export default function LoginPage() {
   const [tab, setTab] = useState<Tab>("member");
@@ -12,16 +19,140 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // OTP step state
+  const [otpState, setOtpState] = useState<OtpState | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpPending, setOtpPending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const otpInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (otpState) {
+      // Auto-focus OTP input and start resend cooldown
+      setTimeout(() => otpInputRef.current?.focus(), 100);
+      startResendCooldown();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpState]);
+
+  function startResendCooldown() {
+    setResendCooldown(RESEND_COOLDOWN);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  // ── Password step ────────────────────────────────────────────────────────────
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = tab === "member"
-        ? await memberLoginAction(formData)
-        : await loginAction(formData);
-      if (result?.error) setError(result.error);
+      const result =
+        tab === "member"
+          ? await memberLoginAction(formData)
+          : await loginAction(formData);
+
+      if (!result) return; // redirect was called server-side
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      if ("step" in result && result.step === "otp") {
+        setOtpState({ maskedEmail: result.maskedEmail });
+      }
     });
+  }
+
+  // ── OTP step ─────────────────────────────────────────────────────────────────
+
+  async function handleOtpSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setOtpError(null);
+    setOtpPending(true);
+
+    try {
+      const res = await fetch("/api/auth/verify-admin-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: otpCode }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setOtpError(data.error ?? "Verification failed.");
+        setOtpPending(false);
+        return;
+      }
+
+      // Establish Supabase session client-side using the one-time magic token
+      const supabase = createClient();
+      const { data: verifyData, error: verifyError } =
+        await supabase.auth.verifyOtp({
+          email: data.emailAlias,
+          token: data.token,
+          type: "magiclink",
+        });
+
+      if (verifyError || !verifyData.user) {
+        setOtpError("Login failed. Please try again.");
+        setOtpPending(false);
+        return;
+      }
+
+      const role = verifyData.user.app_metadata?.role;
+      const forceChange = verifyData.user.app_metadata?.force_password_change;
+
+      if (forceChange) {
+        window.location.href = "/change-password";
+        return;
+      }
+      if (role === "super_admin") {
+        window.location.href = "/superadmin/dashboard";
+      } else if (role === "masjid_admin") {
+        window.location.href = "/admin/dashboard";
+      } else {
+        window.location.href = "/login";
+      }
+    } catch {
+      setOtpError("Network error. Please check your connection.");
+      setOtpPending(false);
+    }
+  }
+
+  async function handleResend() {
+    if (resendCooldown > 0) return;
+    setOtpError(null);
+    try {
+      const res = await fetch("/api/auth/resend-admin-otp", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setOtpError(data.error ?? "Could not resend code.");
+        return;
+      }
+      setOtpCode("");
+      startResendCooldown();
+    } catch {
+      setOtpError("Network error. Could not resend code.");
+    }
+  }
+
+  function handleBackToLogin() {
+    setOtpState(null);
+    setOtpCode("");
+    setOtpError(null);
+    setError(null);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
   }
 
   function switchTab(t: Tab) {
@@ -29,6 +160,88 @@ export default function LoginPage() {
     setError(null);
     setShowPassword(false);
   }
+
+  // ── OTP screen ───────────────────────────────────────────────────────────────
+
+  if (otpState) {
+    return (
+      <div className="min-h-screen brand-gradient flex items-center justify-center p-4 sm:p-6">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
+          <div className="pt-8 pb-6 px-6 sm:px-8 text-center space-y-3">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 bg-brand-green/10 rounded-full flex items-center justify-center">
+                <Mail className="w-8 h-8 text-brand-green" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-brand-green">Check your email</h1>
+            <p className="text-gray-500 text-sm">
+              We sent a 6-digit code to{" "}
+              <span className="font-medium text-gray-700">{otpState.maskedEmail}</span>
+            </p>
+          </div>
+
+          <form onSubmit={handleOtpSubmit} className="px-6 sm:px-8 pb-8 space-y-5">
+            <div className="space-y-2">
+              <label htmlFor="otp_code" className="block text-sm font-medium text-gray-700">
+                Verification Code
+              </label>
+              <input
+                ref={otpInputRef}
+                id="otp_code"
+                type="text"
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                autoComplete="one-time-code"
+                required
+                placeholder="000000"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent"
+              />
+            </div>
+
+            {otpError && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                {otpError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={otpPending || otpCode.length !== 6}
+              className="w-full bg-brand-green text-white rounded-lg py-3 text-base font-semibold hover:bg-brand-green-dark transition-colors disabled:opacity-60"
+            >
+              {otpPending ? "Verifying…" : "Verify & Log In"}
+            </button>
+
+            <div className="flex items-center justify-between text-sm">
+              <button
+                type="button"
+                onClick={handleBackToLogin}
+                className="flex items-center gap-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to login
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendCooldown > 0}
+                className="flex items-center gap-1.5 text-brand-green hover:underline disabled:text-gray-400 disabled:no-underline transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Login screen ─────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen brand-gradient flex items-center justify-center p-4 sm:p-6">
@@ -135,6 +348,13 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {tab === "staff" && (
+            <p className="text-xs text-gray-400 flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+              A verification code will be sent to your registered email after login.
+            </p>
+          )}
+
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
               {error}
@@ -152,7 +372,7 @@ export default function LoginPage() {
           <p className="text-center text-xs text-gray-400">
             {tab === "member"
               ? "Forgot password? Contact your masjid admin."
-              : "Forgot password? Contact your masjid admin."}
+              : "Forgot password? Contact your super admin."}
           </p>
 
           <div className="text-center pt-1">

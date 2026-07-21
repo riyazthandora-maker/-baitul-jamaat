@@ -210,5 +210,11 @@ export async function GET(request: NextRequest) {
     results.statements = statementResults;
   }
 
+  // ── Clean up expired / used admin OTPs ────────────────────────
+  await supabase
+    .from("admin_otps")
+    .delete()
+    .or(`expires_at.lt.${today.toISOString()},used.eq.true`);
+
   return NextResponse.json({ ok: true, date: today.toISOString(), ...results });
 }
