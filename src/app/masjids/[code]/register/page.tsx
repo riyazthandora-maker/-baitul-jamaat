@@ -497,9 +497,9 @@ export default function RegisterPage() {
             </label>
             <select
               value={form.qualification === "" || [
-                "10th Pass","12th Pass","Graduate","Post Graduate",
+                "Below 10th Grade","10th Pass","12th Pass","Graduate","Post Graduate",
                 "Engineer","Doctor","Teacher","Business","Farmer",
-                "Driver","Skilled Worker",
+                "Driver","Skilled Worker","House Wife","Student",
               ].includes(form.qualification) ? form.qualification : "Other"}
               onChange={(e) => {
                 if (e.target.value !== "Other") set("qualification", e.target.value);
@@ -509,6 +509,7 @@ export default function RegisterPage() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
             >
               <option value="">Select…</option>
+              <option value="Below 10th Grade">Below 10th Grade</option>
               <option value="10th Pass">10th Pass</option>
               <option value="12th Pass">12th Pass</option>
               <option value="Graduate">Graduate</option>
@@ -520,12 +521,14 @@ export default function RegisterPage() {
               <option value="Farmer">Farmer</option>
               <option value="Driver">Driver</option>
               <option value="Skilled Worker">Skilled Worker</option>
+              <option value="House Wife">House Wife</option>
+              <option value="Student">Student</option>
               <option value="Other">Other (specify below)</option>
             </select>
             {(form.qualification === "Other" || (form.qualification !== "" && ![
-              "10th Pass","12th Pass","Graduate","Post Graduate",
+              "Below 10th Grade","10th Pass","12th Pass","Graduate","Post Graduate",
               "Engineer","Doctor","Teacher","Business","Farmer",
-              "Driver","Skilled Worker","Other",
+              "Driver","Skilled Worker","House Wife","Student","Other",
             ].includes(form.qualification))) && (
               <input
                 type="text"
