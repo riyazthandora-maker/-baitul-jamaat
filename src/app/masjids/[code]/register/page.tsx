@@ -496,33 +496,50 @@ export default function RegisterPage() {
               Highest Qualification or Job{" "}
               <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              list="qual-suggestions"
-              placeholder="e.g. Graduate, Engineer, Teacher, Business"
-              value={form.qualification}
-              onChange={(e) => set("qualification", e.target.value)}
+            <select
+              value={form.qualification === "" || [
+                "Below 10th Grade","10th Pass","12th Pass","Graduate","Post Graduate",
+                "Engineer","Doctor","Teacher","Business","Farmer",
+                "Driver","Skilled Worker","House Wife","Student",
+              ].includes(form.qualification) ? form.qualification : "Other"}
+              onChange={(e) => {
+                if (e.target.value !== "Other") set("qualification", e.target.value);
+                else set("qualification", "Other");
+              }}
               required
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
-            />
-            <datalist id="qual-suggestions">
-              {[
-                "10th Pass",
-                "12th Pass",
-                "Graduate",
-                "Post Graduate",
-                "Engineer",
-                "Doctor",
-                "Teacher",
-                "Business",
-                "Farmer",
-                "Driver",
-                "Skilled Worker",
-                "Other",
-              ].map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
+            >
+              <option value="">Select…</option>
+              <option value="Below 10th Grade">Below 10th Grade</option>
+              <option value="10th Pass">10th Pass</option>
+              <option value="12th Pass">12th Pass</option>
+              <option value="Graduate">Graduate</option>
+              <option value="Post Graduate">Post Graduate</option>
+              <option value="Engineer">Engineer</option>
+              <option value="Doctor">Doctor</option>
+              <option value="Teacher">Teacher</option>
+              <option value="Business">Business</option>
+              <option value="Farmer">Farmer</option>
+              <option value="Driver">Driver</option>
+              <option value="Skilled Worker">Skilled Worker</option>
+              <option value="House Wife">House Wife</option>
+              <option value="Student">Student</option>
+              <option value="Other">Other (specify below)</option>
+            </select>
+            {(form.qualification === "Other" || (form.qualification !== "" && ![
+              "Below 10th Grade","10th Pass","12th Pass","Graduate","Post Graduate",
+              "Engineer","Doctor","Teacher","Business","Farmer",
+              "Driver","Skilled Worker","House Wife","Student","Other",
+            ].includes(form.qualification))) && (
+              <input
+                type="text"
+                placeholder="Please specify"
+                value={form.qualification === "Other" ? "" : form.qualification}
+                onChange={(e) => set("qualification", e.target.value)}
+                required
+                className="mt-2 w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+              />
+            )}
           </div>
         </section>
 
@@ -537,7 +554,6 @@ export default function RegisterPage() {
             ref={photoRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={handlePhotoChange}
           />
