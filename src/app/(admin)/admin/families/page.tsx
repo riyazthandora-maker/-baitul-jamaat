@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Users2, Plus, ChevronRight } from "lucide-react";
+import { Users2, Plus, ChevronRight, Download } from "lucide-react";
 
 export default async function FamiliesPage() {
   const supabase = await createClient();
@@ -17,13 +17,22 @@ export default async function FamiliesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-brand-green">Families</h1>
-        <Link
-          href="/admin/families/new"
-          className="flex items-center gap-2 bg-brand-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Family
-        </Link>
+        <div className="flex items-center gap-2">
+          <a
+            href="/api/admin/families/report"
+            className="flex items-center gap-2 border border-brand-green text-brand-green px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green/5 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Download Report
+          </a>
+          <Link
+            href="/admin/families/new"
+            className="flex items-center gap-2 bg-brand-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Family
+          </Link>
+        </div>
       </div>
 
       {families && families.length > 0 ? (

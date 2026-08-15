@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, Receipt, TrendingDown, FileText } from "lucide-react";
 import ApproveRejectButtons from "@/components/ApproveRejectButtons";
+import EditableMemberName from "@/components/EditableMemberName";
 import VoidButton from "@/components/VoidButton";
 import AddDiscountForm from "@/components/AddDiscountForm";
 import OpeningBalanceForm from "@/components/OpeningBalanceForm";
@@ -67,7 +68,6 @@ export default async function MemberReviewPage({
     .order("created_at", { ascending: false });
 
   const fields: Array<{ label: string; value: string | null | undefined }> = [
-    { label: "Full Name", value: member.full_name },
     { label: "Phone", value: member.phone },
     { label: "Email", value: member.email },
     {
@@ -132,6 +132,14 @@ export default async function MemberReviewPage({
           )}
 
           <dl className="space-y-3">
+            {member.status === "pending" ? (
+              <EditableMemberName memberId={id} initialName={member.full_name} />
+            ) : (
+              <div className="text-sm">
+                <dt className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Full Name</dt>
+                <dd className="text-gray-800 font-medium break-words">{member.full_name}</dd>
+              </div>
+            )}
             {fields.map(({ label, value }) =>
               value ? (
                 <div key={label} className="text-sm">
