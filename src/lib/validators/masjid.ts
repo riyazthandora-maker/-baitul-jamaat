@@ -19,7 +19,10 @@ export const masjidSchema = z.object({
   admin_name: z.string().min(2, "Admin name required"),
   admin_phone: z
     .string()
-    .regex(/^[0-9]{10}$/, "Admin phone must be 10 digits"),
+    .regex(
+      /^([6-9]\d{9}|\+[1-9]\d{6,14})$/,
+      "Enter a valid phone number (10-digit Indian or international with country code e.g. +447911123456)"
+    ),
 });
 
 export type MasjidFormValues = z.infer<typeof masjidSchema>;

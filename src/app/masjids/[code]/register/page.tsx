@@ -250,13 +250,14 @@ export default function RegisterPage() {
             </label>
             <input
               type="tel"
-              inputMode="numeric"
-              placeholder="10-digit mobile number"
+              inputMode="tel"
+              placeholder="e.g. 9876543210 or +447911123456"
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
               required
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
             />
+            <p className="text-xs text-gray-400 mt-1">Indian (10 digits) or international with country code</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

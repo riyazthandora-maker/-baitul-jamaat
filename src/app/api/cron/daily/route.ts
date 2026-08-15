@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
 
         // ── Admin PDF statement ──────────────────────────────────
         const adminEmail = (masjid as { contact_email?: string | null }).contact_email
-          ?? (adminProfile?.phone ? `${adminProfile.phone}@bj.local` : null);
+          ?? (adminProfile?.phone ? `${adminProfile.phone.replace(/\D/g, "")}@bj.local` : null);
 
         if (adminEmail) {
           const pdfBytes = await generateStatementPdf({

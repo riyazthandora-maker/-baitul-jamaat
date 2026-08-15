@@ -66,7 +66,10 @@ export async function loginAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const emailAlias = `${phone.replace(/\s/g, "")}@bj.local`;
+
+  // Supabase Auth uses email field — we store phone as the "email" identifier
+  // Normalize: strip all non-digit characters so +447911123456 and 447911123456 produce the same alias
+  const emailAlias = `${phone.replace(/\D/g, "")}@bj.local`;
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email: emailAlias,

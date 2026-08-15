@@ -286,16 +286,16 @@ export default function MasjidForm({ initialData, isNew = false, applicationId, 
               </div>
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700">
-                  Admin Phone (10 digits) *
+                  Admin Phone *
                 </label>
                 <input
                   name="admin_phone"
                   type="tel"
                   required
-                  pattern="[0-9]{10}"
-                  placeholder="e.g. 9876543210"
+                  placeholder="e.g. 9876543210 or +447911123456"
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
                 />
+                <p className="text-xs text-gray-400">Indian (10 digits) or international with country code</p>
               </div>
             </div>
             <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">

@@ -95,7 +95,8 @@ export async function POST(req: NextRequest) {
   );
 
   const tempPassword = generateTempPassword();
-  const emailAlias = `${validated.admin_phone}@bj.local`;
+  // Normalize phone: strip all non-digit chars so international numbers (+447911123456 → 447911123456) work as aliases
+  const emailAlias = `${validated.admin_phone.replace(/\D/g, "")}@bj.local`;
 
   const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
     email: emailAlias,
