@@ -5,8 +5,8 @@ export const memberRegistrationSchema = z.object({
   phone: z
     .string()
     .regex(
-      /^(\+91|0)?[6-9]\d{9}$|^\+971[0-9]{8,9}$/,
-      "Enter a valid 10-digit Indian or UAE phone number"
+      /^([6-9]\d{9}|\+[1-9]\d{6,14})$/,
+      "Enter a valid phone number (10-digit Indian or international with country code e.g. +447911123456)"
     ),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   dob: z.string().optional().nullable(),
