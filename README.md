@@ -1,6 +1,6 @@
 # Baitul Jamaat
 
-Masjid Membership & Donation Management System — multi-tenant, mobile-first, built for non-technical users.
+Masjid Membership & Donation Management System — multi-tenant, mobile-first, built for non-technical users. [DEV branch test]
 
 ## Stack
 

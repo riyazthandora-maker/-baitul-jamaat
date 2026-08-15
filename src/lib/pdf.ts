@@ -255,3 +255,97 @@ export async function generateStatementPdf(statement: {
 
   return doc.save();
 }
+
+export async function generateFamiliesReportPdf(report: {
+  masjid: { name: string; address: string };
+  families: Array<{
+    name: string;
+    members: Array<{ full_name: string; relationship: string; member_number: string | null; phone: string }>;
+  }>;
+  unattachedMembers: Array<{ full_name: string; member_number: string | null; phone: string }>;
+}): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+
+  const totalMembers = report.families.reduce((s, f) => s + f.members.length, 0);
+
+  function addPage() {
+    const p = doc.addPage([595, 842]);
+    const { width, height } = p.getSize();
+    p.drawRectangle({ x: 0, y: height - 54, width, height: 54, color: GREEN });
+    p.drawText("FAMILIES REPORT", { x: 40, y: height - 24, size: 16, font: bold, color: rgb(1, 1, 1) });
+    p.drawText(report.masjid.name, { x: 40, y: height - 40, size: 9, font: regular, color: GOLD });
+    p.drawText(`Generated ${new Date().toLocaleDateString("en-IN")}`, {
+      x: width - 190, y: height - 32, size: 9, font: regular, color: GOLD,
+    });
+    return { page: p, width, y: height - 70 };
+  }
+
+  let { page, width, y } = addPage();
+
+  // Summary box
+  page.drawRectangle({ x: 38, y: y - 54, width: width - 76, height: 64, color: rgb(0.94, 0.98, 0.95) });
+  page.drawLine({ start: { x: 38 + (width - 76) / 3, y: y - 54 }, end: { x: 38 + (width - 76) / 3, y: y + 10 }, thickness: 0.5, color: GRAY });
+  page.drawLine({ start: { x: 38 + (2 * (width - 76)) / 3, y: y - 54 }, end: { x: 38 + (2 * (width - 76)) / 3, y: y + 10 }, thickness: 0.5, color: GRAY });
+
+  const col = (width - 76) / 3;
+  const stats = [
+    { label: "Total Families", value: String(report.families.length) },
+    { label: "Members in Families", value: String(totalMembers) },
+    { label: "Unattached Members", value: String(report.unattachedMembers.length) },
+  ];
+  stats.forEach((s, i) => {
+    const x = 38 + col * i + col / 2;
+    page.drawText(s.value, { x: x - (bold.widthOfTextAtSize(s.value, 22) / 2), y: y - 12, size: 22, font: bold, color: GREEN });
+    page.drawText(s.label, { x: x - (regular.widthOfTextAtSize(s.label, 8) / 2), y: y - 34, size: 8, font: regular, color: GRAY });
+  });
+  y -= 72;
+  drawHRule(page, y, width, GOLD);
+  y -= 16;
+
+  // Families section
+  page.drawText("FAMILIES", { x: 40, y, size: 10, font: bold, color: GREEN });
+  y -= 16;
+
+  for (const family of report.families) {
+    if (y < 100) ({ page, width, y } = addPage());
+
+    page.drawRectangle({ x: 38, y: y - 4, width: width - 76, height: 20, color: GREEN });
+    page.drawText(family.name, { x: 46, y: y + 4, size: 9, font: bold, color: rgb(1, 1, 1) });
+    page.drawText(`${family.members.length} member(s)`, {
+      x: width - 130, y: y + 4, size: 8, font: regular, color: GOLD,
+    });
+    y -= 22;
+
+    for (const m of family.members) {
+      if (y < 80) ({ page, width, y } = addPage());
+      const rel = m.relationship.charAt(0).toUpperCase() + m.relationship.slice(1);
+      page.drawText(`• ${m.full_name}`, { x: 52, y, size: 9, font: bold, color: BLACK });
+      page.drawText(rel, { x: 230, y, size: 8, font: regular, color: GRAY });
+      if (m.member_number) page.drawText(m.member_number, { x: 310, y, size: 8, font: regular, color: GRAY });
+      page.drawText(m.phone, { x: width - 140, y, size: 8, font: regular, color: GRAY });
+      y -= 13;
+    }
+    y -= 6;
+  }
+
+  // Unattached members section
+  if (report.unattachedMembers.length > 0) {
+    if (y < 120) ({ page, width, y } = addPage());
+    drawHRule(page, y, width, GOLD);
+    y -= 16;
+    page.drawText("MEMBERS NOT ATTACHED TO ANY FAMILY", { x: 40, y, size: 10, font: bold, color: GOLD });
+    y -= 16;
+
+    for (const m of report.unattachedMembers) {
+      if (y < 80) ({ page, width, y } = addPage());
+      page.drawText(`• ${m.full_name}`, { x: 46, y, size: 9, font: bold, color: BLACK });
+      if (m.member_number) page.drawText(m.member_number, { x: 280, y, size: 8, font: regular, color: GRAY });
+      page.drawText(m.phone, { x: width - 140, y, size: 8, font: regular, color: GRAY });
+      y -= 13;
+    }
+  }
+
+  return doc.save();
+}
