@@ -11,6 +11,8 @@ import StatementActions from "@/components/StatementActions";
 import LedgerList from "@/components/LedgerList";
 import MemberStatusToggle from "@/components/MemberStatusToggle";
 import MemberResetPasswordButton from "@/components/MemberResetPasswordButton";
+import AdminMemberEditForm from "@/components/AdminMemberEditForm";
+import AdminChangeRequestReview from "@/components/AdminChangeRequestReview";
 
 export default async function MemberReviewPage({
   params,
@@ -117,9 +119,25 @@ export default async function MemberReviewPage({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Member Data */}
         <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
-          <h2 className="font-semibold text-gray-700 border-b pb-2">
-            Submitted Information
-          </h2>
+          <div className="flex items-center justify-between border-b pb-2">
+            <h2 className="font-semibold text-gray-700">Submitted Information</h2>
+            {member.status !== "pending" && (
+              <AdminMemberEditForm
+                memberId={id}
+                member={{
+                  full_name: member.full_name,
+                  phone: member.phone,
+                  email: member.email ?? null,
+                  dob: member.dob ?? null,
+                  gender: member.gender ?? null,
+                  address: member.address ?? null,
+                  qualification: member.qualification ?? null,
+                  id_type: member.id_type ?? null,
+                  id_last4: member.id_last4 ?? null,
+                }}
+              />
+            )}
+          </div>
 
           {photoSignedUrl && (
             <div className="flex justify-center pb-2">
@@ -266,6 +284,11 @@ export default async function MemberReviewPage({
       {/* Reset member password */}
       {member.status === "active" && member.profile_id && (
         <MemberResetPasswordButton memberId={id} />
+      )}
+
+      {/* Pending profile change request */}
+      {member.status === "active" && (
+        <AdminChangeRequestReview memberId={id} />
       )}
 
       {/* Ledger */}
