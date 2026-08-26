@@ -143,9 +143,17 @@ export default async function MemberDashboard() {
 
         {/* Member Details */}
         <div className="bg-white rounded-xl shadow-sm p-5">
-          <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">
-            My Details
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
+              My Details
+            </h2>
+            <Link
+              href="/member/profile/edit"
+              className="text-xs text-brand-green font-medium hover:underline"
+            >
+              Edit Profile
+            </Link>
+          </div>
           <dl className="space-y-3 text-sm">
             <div>
               <dt className="text-xs text-gray-400 uppercase tracking-wide">Member ID</dt>
