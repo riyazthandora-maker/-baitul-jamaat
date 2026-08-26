@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { AlertTriangle, ChevronRight, UserPlus, ArrowUpDown } from "lucide-react";
+import { AlertTriangle, ChevronRight, UserPlus, ArrowUpDown, FileUp } from "lucide-react";
 import { Suspense } from "react";
 import MemberSearch from "@/components/MemberSearch";
 
@@ -81,6 +81,13 @@ export default async function AdminMembersPage({
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-brand-green">Members</h1>
+        <Link
+          href="/admin/members/import"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-green text-white text-sm font-semibold hover:bg-green-800 transition-colors"
+        >
+          <FileUp className="w-4 h-4" />
+          Import Members
+        </Link>
       </div>
 
       {/* Status tabs */}
