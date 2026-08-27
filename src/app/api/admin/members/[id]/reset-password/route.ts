@@ -49,7 +49,10 @@ export async function POST(
 
   const { error: updateError } = await serviceClient.auth.admin.updateUserById(
     member.profile_id,
-    { password: tempPassword }
+    {
+      password: tempPassword,
+      app_metadata: { force_password_change: true },
+    }
   );
 
   if (updateError) {
