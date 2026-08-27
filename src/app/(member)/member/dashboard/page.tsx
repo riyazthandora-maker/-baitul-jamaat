@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import QRCode from "qrcode";
 import MemberSignOutButton from "@/components/MemberSignOutButton";
 import PayButton from "@/components/PayButton";
 import { getMemberBalance } from "@/lib/billing";
@@ -40,16 +39,7 @@ export default async function MemberDashboard() {
         .limit(10)
     : { data: [] };
 
-  // Generate QR with amount pre-filled for PayButton
-  let payQrDataUrl: string | null = null;
-  if (masjid?.upi_id && balance > 0) {
-    const upiLink = `upi://pay?pa=${encodeURIComponent(masjid.upi_id)}&pn=${encodeURIComponent(masjid.name)}&am=${balance.toFixed(2)}&cu=INR&tn=${encodeURIComponent("Outstanding Dues")}`;
-    payQrDataUrl = await QRCode.toDataURL(upiLink, {
-      width: 280,
-      margin: 2,
-      color: { dark: "#1a6b3c", light: "#ffffff" },
-    });
-  }
+  const isCredit = balance < 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -80,29 +70,37 @@ export default async function MemberDashboard() {
 
         {/* Balance Card */}
         <div className="bg-white rounded-xl shadow-sm p-6 text-center border border-brand-green/20">
-          <p className="text-sm text-gray-400 mb-1">Outstanding Balance</p>
-          <p className={`text-5xl font-bold ${balance > 0 ? "text-red-600" : "text-brand-green"}`}>
-            ₹{balance.toFixed(2)}
+          <p className="text-sm text-gray-400 mb-1">
+            {isCredit ? "Advance / Credit" : "Outstanding Balance"}
           </p>
-          {balance <= 0 ? (
+          <p className={`text-5xl font-bold ${balance > 0 ? "text-red-600" : "text-brand-green"}`}>
+            ₹{Math.abs(balance).toFixed(2)}
+          </p>
+          {isCredit ? (
+            <p className="text-xs text-gray-400 mt-2">
+              This credit will offset future dues automatically
+            </p>
+          ) : balance === 0 ? (
             <p className="text-sm text-green-600 mt-2 font-medium">All payments up to date ✓</p>
           ) : (
             <p className="text-xs text-gray-400 mt-2">Please pay at the earliest convenience</p>
           )}
         </div>
 
-        {/* Pay Button (only when balance > 0 and UPI configured) */}
-        {balance > 0 && masjid?.upi_id && payQrDataUrl && (
+        {/* Pay area (always visible when UPI configured) */}
+        {masjid?.upi_id && (
           <PayButton
             upiId={masjid.upi_id}
             masjidName={masjid.name}
             balance={balance}
-            qrDataUrl={payQrDataUrl}
+            memberNumber={member?.member_number}
+            memberName={member?.full_name ?? "Member"}
+            initialAmount={balance > 0 ? balance : 0}
           />
         )}
 
         {/* No UPI configured nudge */}
-        {balance > 0 && !masjid?.upi_id && (
+        {!masjid?.upi_id && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700 text-center">
             Contact your masjid to set up online payment
           </div>

@@ -154,6 +154,7 @@ const memberSteps: Step[] = [
       "Login ചെയ്ത ശേഷം Dashboard ഓട്ടോ തുറക്കും.",
       "Outstanding Balance (ബാക്കി ബാലൻസ്) കൂടുതൽ വ്യക്തമായ Red Color-ൽ കാണും.",
       "Balance ₹0 ആണെങ്കിൽ Green-ൽ 'All payments up to date ✓' കാണിക്കും.",
+      "Balance Credit/Advance ആണെങ്കിൽ Green-ൽ 'Advance / Credit ₹X' കാണിക്കും.",
       "Recent Transactions (കഴിഞ്ഞ 10) ചുവടെ ലിസ്റ്റ് ആകും.",
       "My Details Section-ൽ Member ID, Name, Phone, Masjid, Member Since കാണും.",
     ],
@@ -163,10 +164,11 @@ const memberSteps: Step[] = [
     title: "GPay വഴി പേ ചെയ്യൽ",
     summary: "Outstanding Balance GPay-ൽ Pay ചെയ്യുക",
     steps: [
-      "Balance > 0 ആണെങ്കിൽ 'Pay ₹XX via GPay' ബട്ടൺ കാണും.",
-      "ബട്ടൺ ക്ലിക്ക് ചെയ്താൽ GPay App ഓട്ടോ തുറക്കും — തുക Pre-filled ആകും.",
+      "'Pay via GPay' ബട്ടൺ എല്ലായ്പ്പോഴും കാണും — ബാക്കി ₹0 ആണെങ്കിലും (അഡ്വാൻസ് അടയ്ക്കാം).",
+      "ബട്ടൺ ക്ലിക്ക് ചെയ്താൽ GPay App ഓട്ടോ തുറക്കും — ആദ്യം തുക മാറ്റാം: മുഴുവൻ, പകുതി, അല്ലെങ്കിൽ മറ്റേതെങ്കിലും തുക.",
       "GPay-ൽ Confirm ചെയ്ത് Pay ചെയ്യുക.",
       "GPay ഇൻസ്റ്റോൾ ഇല്ലെങ്കിൽ 'Show QR Code' ക്ലിക്ക് ചെയ്ത് QR Scan ചെയ്യുക.",
+      "ബാക്കിയുള്ളതിലും കൂടുതൽ അടച്ചാൽ ആ തുക Credit/Advance ആയി സൂക്ഷിക്കും — ഭാവിയിലെ കുടിശ്ശികയിൽ ഓട്ടോ ഒഴിവാക്കും.",
     ],
     tip: "PhonePe, Paytm, BHIM — ഏതൊരു UPI App ഉപയോഗിച്ചും QR Scan ചെയ്യാം.",
     warning: "⚠️ Payment ചെയ്ത ശേഷം Admin-നെ അറിയിക്കുക — Balance Update Admin ആണ് ചെയ്യേണ്ടത്.",
@@ -178,9 +180,9 @@ const memberSteps: Step[] = [
     steps: [
       "'Show QR Code' ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.",
       "Phone Camera-ഉം UPI App-ഉം ഉപയോഗിച്ച് QR Scan ചെയ്യുക.",
-      "Amount ₹XX ഓട്ടോ Fill ആകും — Confirm ചെയ്ത് Pay ചെയ്യുക.",
+      "നിങ്ങൾ നൽകിയ തുക QR-ൽ Fill ആകും — Confirm ചെയ്ത് Pay ചെയ്യുക.",
     ],
-    tip: "QR Code-ൽ ശരിയായ Amount ഇതിനകം Enter ചെയ്തിട്ടുണ്ട്; manually change ചെയ്യേണ്ട.",
+    tip: "Amount Field-ൽ തുക മാറ്റിയാൽ QR-ലും അതേ തുകയായി മാറും. എത്ര തുക വേണമെങ്കിലും നൽകാം.",
   },
   {
     icon: <Key className="w-6 h-6" />,

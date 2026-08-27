@@ -296,7 +296,7 @@ export interface Database {
           program_id: string | null;
           enrollment_id: string | null;
           receipt_id: string | null;
-          type: "charge" | "discount" | "payment";
+          type: "charge" | "discount" | "payment" | "opening_balance";
           amount: number;
           description: string | null;
           period_key: string | null;
@@ -311,7 +311,7 @@ export interface Database {
           program_id?: string | null;
           enrollment_id?: string | null;
           receipt_id?: string | null;
-          type: "charge" | "discount" | "payment";
+          type: "charge" | "discount" | "payment" | "opening_balance";
           amount: number;
           description?: string | null;
           period_key?: string | null;

@@ -176,6 +176,9 @@ export default async function AdminMembersPage({
                       {(balanceMap.get(m.id) ?? 0) > 0 && (
                         <span className="text-xs font-normal text-red-400 ml-1">due</span>
                       )}
+                      {(balanceMap.get(m.id) ?? 0) < 0 && (
+                        <span className="text-xs font-normal text-brand-green ml-1">credit</span>
+                      )}
                     </span>
                   )}
                   <ChevronRight className="w-5 h-5 text-gray-300" />
