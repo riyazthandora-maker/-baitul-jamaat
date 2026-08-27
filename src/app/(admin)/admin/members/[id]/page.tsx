@@ -257,10 +257,17 @@ export default async function MemberReviewPage({
       {member.status === "active" && (
         <div className="bg-white rounded-xl shadow-sm p-5 flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-0">
-            <p className="text-gray-500 text-sm">Outstanding Balance</p>
-            <p className={`text-2xl font-bold ${balance > 0 ? "text-red-600" : "text-brand-green"}`}>
-              ₹{balance.toFixed(2)}
+            <p className="text-gray-500 text-sm">
+              {balance < 0 ? "Advance / Credit" : "Outstanding Balance"}
             </p>
+            <p className={`text-2xl font-bold ${balance > 0 ? "text-red-600" : "text-brand-green"}`}>
+              ₹{Math.abs(balance).toFixed(2)}
+            </p>
+            {balance < 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                Member has credit — future charges will offset automatically.
+              </p>
+            )}
           </div>
           <Link
             href={`/admin/receipts/new?member_id=${id}`}
