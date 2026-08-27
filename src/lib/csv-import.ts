@@ -148,8 +148,15 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
+// Quote fields containing a comma, quote, or newline so spreadsheet apps
+// don't split them into extra cells (RFC 4180).
+function csvEscape(value: string | number): string {
+  const s = String(value);
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
 export function generateTemplateCSV(): string {
-  const header = CSV_TEMPLATE_HEADERS.join(",");
+  const header = CSV_TEMPLATE_HEADERS.map(csvEscape).join(",");
   const example1 = [
     "Ahmed Ali",
     "+919876543210",
@@ -161,7 +168,9 @@ export function generateTemplateCSV(): string {
     "Aadhaar",
     "1234",
     "500",
-  ].join(",");
+  ]
+    .map(csvEscape)
+    .join(",");
   const example2 = [
     "Fatima Begum",
     "+919876543211",
@@ -173,6 +182,8 @@ export function generateTemplateCSV(): string {
     "Passport",
     "5678",
     "0",
-  ].join(",");
+  ]
+    .map(csvEscape)
+    .join(",");
   return [header, example1, example2].join("\n");
 }
