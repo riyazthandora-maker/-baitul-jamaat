@@ -72,6 +72,7 @@ export async function PATCH(
     "id_type",
     "id_last4",
     "qualification",
+    "job",
     "status",
   ];
   const update: Record<string, unknown> = {};

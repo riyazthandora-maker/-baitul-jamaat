@@ -14,7 +14,7 @@ import {
   CreditCard,
   Info,
 } from "lucide-react";
-import { normalizeIdType } from "@/lib/member-types";
+import { normalizeIdType, QUALIFICATION_OPTIONS } from "@/lib/member-types";
 
 type OcrResult = {
   name: string | null;
@@ -59,6 +59,7 @@ export default function RegisterPage() {
     id_type: "",
     id_last4: "",
     qualification: "",
+    job: "",
   });
 
   useEffect(() => {
@@ -94,6 +95,7 @@ export default function RegisterPage() {
       id_type: "",
       id_last4: "",
       qualification: "",
+      job: "",
     });
     if (idFrontRef.current) idFrontRef.current.value = "";
     if (idBackRef.current) idBackRef.current.value = "";
@@ -494,53 +496,30 @@ export default function RegisterPage() {
           </h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Highest Qualification or Job{" "}
-              <span className="text-red-500">*</span>
+              Highest Qualification
             </label>
             <select
-              value={form.qualification === "" || [
-                "Below 10th Grade","10th Pass","12th Pass","Graduate","Post Graduate",
-                "Engineer","Doctor","Teacher","Business","Farmer",
-                "Driver","Skilled Worker","House Wife","Student",
-              ].includes(form.qualification) ? form.qualification : "Other"}
-              onChange={(e) => {
-                if (e.target.value !== "Other") set("qualification", e.target.value);
-                else set("qualification", "Other");
-              }}
-              required
+              value={form.qualification}
+              onChange={(e) => set("qualification", e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
             >
               <option value="">Select…</option>
-              <option value="Below 10th Grade">Below 10th Grade</option>
-              <option value="10th Pass">10th Pass</option>
-              <option value="12th Pass">12th Pass</option>
-              <option value="Graduate">Graduate</option>
-              <option value="Post Graduate">Post Graduate</option>
-              <option value="Engineer">Engineer</option>
-              <option value="Doctor">Doctor</option>
-              <option value="Teacher">Teacher</option>
-              <option value="Business">Business</option>
-              <option value="Farmer">Farmer</option>
-              <option value="Driver">Driver</option>
-              <option value="Skilled Worker">Skilled Worker</option>
-              <option value="House Wife">House Wife</option>
-              <option value="Student">Student</option>
-              <option value="Other">Other (specify below)</option>
+              {QUALIFICATION_OPTIONS.map((q) => (
+                <option key={q} value={q}>{q}</option>
+              ))}
             </select>
-            {(form.qualification === "Other" || (form.qualification !== "" && ![
-              "Below 10th Grade","10th Pass","12th Pass","Graduate","Post Graduate",
-              "Engineer","Doctor","Teacher","Business","Farmer",
-              "Driver","Skilled Worker","House Wife","Student","Other",
-            ].includes(form.qualification))) && (
-              <input
-                type="text"
-                placeholder="Please specify"
-                value={form.qualification === "Other" ? "" : form.qualification}
-                onChange={(e) => set("qualification", e.target.value)}
-                required
-                className="mt-2 w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
-              />
-            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Job
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Teacher, Software Engineer (optional)"
+              value={form.job}
+              onChange={(e) => set("job", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+            />
           </div>
         </section>
 

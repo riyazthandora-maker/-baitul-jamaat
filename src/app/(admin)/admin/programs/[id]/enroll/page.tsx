@@ -13,6 +13,7 @@ type Member = {
   dob: string | null;
   gender: string | null;
   qualification: string | null;
+  job: string | null;
 };
 
 type EnrollRow = { member_id: string; amount: string };
@@ -80,7 +81,11 @@ export default function EnrollPage() {
 
     if (genderFilter && m.gender?.toLowerCase() !== genderFilter) return false;
 
-    if (qualFilter && !m.qualification?.toLowerCase().includes(qualFilter.toLowerCase())) return false;
+    if (qualFilter) {
+      const f = qualFilter.toLowerCase();
+      const qualAndJob = `${m.qualification ?? ""} ${m.job ?? ""}`.toLowerCase();
+      if (!qualAndJob.includes(f)) return false;
+    }
 
     return true;
   });
@@ -243,6 +248,7 @@ export default function EnrollPage() {
                     {age !== null && ` · ${age} yrs`}
                     {m.gender && ` · ${m.gender}`}
                     {m.qualification && ` · ${m.qualification}`}
+                    {m.job && ` · ${m.job}`}
                   </p>
                 </div>
                 {isSelected && (

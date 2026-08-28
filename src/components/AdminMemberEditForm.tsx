@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Pencil, X, Check } from "lucide-react";
-import { ID_TYPE_OPTIONS, normalizeIdType } from "@/lib/member-types";
+import { ID_TYPE_OPTIONS, normalizeIdType, QUALIFICATION_OPTIONS } from "@/lib/member-types";
 
 interface Props {
   memberId: string;
@@ -14,15 +14,11 @@ interface Props {
     gender: string | null;
     address: string | null;
     qualification: string | null;
+    job: string | null;
     id_type: string | null;
     id_last4: string | null;
   };
 }
-
-const QUALIFICATIONS = [
-  "Below 10th Grade", "10th Grade", "12th Grade", "Diploma",
-  "Graduate", "Post Graduate", "Doctorate", "House Wife", "Student", "Other",
-];
 
 export default function AdminMemberEditForm({ memberId, member }: Props) {
   const [open, setOpen] = useState(false);
@@ -38,6 +34,7 @@ export default function AdminMemberEditForm({ memberId, member }: Props) {
     gender: member.gender ?? "",
     address: member.address ?? "",
     qualification: member.qualification ?? "",
+    job: member.job ?? "",
     id_type: normalizeIdType(member.id_type),
     id_last4: member.id_last4 ?? "",
   });
@@ -108,11 +105,15 @@ export default function AdminMemberEditForm({ memberId, member }: Props) {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 uppercase tracking-wide">Qualification</label>
+              <label className="text-xs text-gray-500 uppercase tracking-wide">Highest Qualification</label>
               <select value={form.qualification} onChange={set("qualification")} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green bg-white">
                 <option value="">Select…</option>
-                {QUALIFICATIONS.map((q) => <option key={q}>{q}</option>)}
+                {QUALIFICATION_OPTIONS.map((q) => <option key={q} value={q}>{q}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-wide">Job</label>
+              <input value={form.job} onChange={set("job")} placeholder="e.g. Teacher" className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green" />
             </div>
             <div>
               <label className="text-xs text-gray-500 uppercase tracking-wide">ID Type</label>

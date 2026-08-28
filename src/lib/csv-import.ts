@@ -8,6 +8,7 @@ export interface ImportRow {
   gender: string;
   address: string;
   qualification: string;
+  job: string;
   id_type: string;
   id_last4: string;
   opening_balance: string;
@@ -28,6 +29,7 @@ export const CSV_TEMPLATE_HEADERS: string[] = [
   "gender",
   "address",
   "qualification",
+  "job",
   "id_type",
   "id_last4",
   "opening_balance",
@@ -66,10 +68,6 @@ export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
 
   if (row.gender && row.gender.trim() && !VALID_GENDERS.includes(row.gender.trim())) {
     errors.push(`Gender must be one of: ${VALID_GENDERS.join(", ")}`);
-  }
-
-  if (!row.qualification || row.qualification.trim().length < 1) {
-    errors.push("Qualification is required");
   }
 
   if (row.id_type && row.id_type.trim() && !(ID_TYPE_OPTIONS as readonly string[]).includes(row.id_type.trim())) {
@@ -117,6 +115,7 @@ export function parseCSV(text: string): ImportRow[] {
       gender: obj["gender"] ?? "",
       address: obj["address"] ?? "",
       qualification: obj["qualification"] ?? "",
+      job: obj["job"] ?? "",
       id_type: normalizeIdType(obj["id_type"]) || "",
       id_last4: obj["id_last4"] ?? "",
       opening_balance: obj["opening_balance"] ?? "",
@@ -165,6 +164,7 @@ export function generateTemplateCSV(): string {
     "1985-06-15",
     "Male",
     "123 Main Street, City",
+    "Degree (BA/BSc/MBBS/BTech etc.)",
     "Software Engineer",
     "Aadhaar",
     "1234",
@@ -179,6 +179,7 @@ export function generateTemplateCSV(): string {
     "1990-03-22",
     "Female",
     "456 Park Road, Town",
+    "SSLC",
     "Teacher",
     "Passport",
     "5678",

@@ -276,6 +276,7 @@ export default function BulkImportPage() {
                     <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
                     <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</th>
                     <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Qualification</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Job</th>
                     <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Opening Balance</th>
                     <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                   </tr>
@@ -297,6 +298,9 @@ export default function BulkImportPage() {
                         <td className="px-4 py-3 text-gray-600">
                           {row.data.qualification || <span className="text-gray-300 italic">—</span>}
                         </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {row.data.job || <span className="text-gray-300 italic">—</span>}
+                        </td>
                         <td className="px-4 py-3 text-right text-gray-600">
                           {row.data.opening_balance && Number(row.data.opening_balance) > 0
                             ? `₹${Number(row.data.opening_balance).toLocaleString("en-IN")}`
@@ -310,7 +314,7 @@ export default function BulkImportPage() {
                       </tr>
                       {row.status !== "valid" && expandedRows.has(row.rowNum) && (
                         <tr className="bg-red-50">
-                          <td colSpan={6} className="px-4 py-3">
+                          <td colSpan={7} className="px-4 py-3">
                             <ul className="list-disc list-inside space-y-1">
                               {row.errors.map((e, i) => (
                                 <li key={i} className="text-xs text-red-700">{e}</li>

@@ -18,7 +18,8 @@ export const memberRegistrationSchema = z.object({
     .regex(/^\d{4}$/, "Must be exactly 4 digits")
     .optional()
     .nullable(),
-  qualification: z.string().min(1, "Qualification or job is required"),
+  qualification: z.string().optional().nullable(),
+  job: z.string().optional().nullable(),
 });
 
 export type MemberRegistrationInput = z.infer<typeof memberRegistrationSchema>;

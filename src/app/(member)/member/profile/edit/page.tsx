@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, Clock, XCircle } from "lucide-react";
-import { ID_TYPE_OPTIONS, normalizeIdType } from "@/lib/member-types";
+import { ID_TYPE_OPTIONS, normalizeIdType, QUALIFICATION_OPTIONS } from "@/lib/member-types";
 
 interface MemberData {
   id: string;
@@ -12,6 +12,7 @@ interface MemberData {
   phone: string;
   email: string | null;
   qualification: string | null;
+  job: string | null;
   id_type: string | null;
   id_last4: string | null;
   photo_url: string | null;
@@ -25,11 +26,6 @@ interface PendingRequest {
   status: string;
   reject_reason: string | null;
 }
-
-const QUALIFICATIONS = [
-  "Below 10th Grade", "10th Grade", "12th Grade", "Diploma",
-  "Graduate", "Post Graduate", "Doctorate", "House Wife", "Student", "Other",
-];
 
 export default function MemberEditProfilePage() {
   const router = useRouter();
@@ -49,6 +45,7 @@ export default function MemberEditProfilePage() {
     phone: "",
     email: "",
     qualification: "",
+    job: "",
     id_type: "",
     id_last4: "",
   });
@@ -70,6 +67,7 @@ export default function MemberEditProfilePage() {
           phone: m.phone ?? "",
           email: m.email ?? "",
           qualification: m.qualification ?? "",
+          job: m.job ?? "",
           id_type: normalizeIdType(m.id_type),
           id_last4: m.id_last4 ?? "",
         });
@@ -250,16 +248,26 @@ export default function MemberEditProfilePage() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">Qualification *</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">Highest Qualification</label>
                   <select
-                    required
                     value={form.qualification}
                     onChange={(e) => setForm((p) => ({ ...p, qualification: e.target.value }))}
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green bg-white"
                   >
                     <option value="">Select…</option>
-                    {QUALIFICATIONS.map((q) => <option key={q} value={q}>{q}</option>)}
+                    {QUALIFICATION_OPTIONS.map((q) => <option key={q} value={q}>{q}</option>)}
                   </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">Job</label>
+                  <input
+                    type="text"
+                    value={form.job}
+                    onChange={(e) => setForm((p) => ({ ...p, job: e.target.value }))}
+                    placeholder="e.g. Teacher, Software Engineer"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
