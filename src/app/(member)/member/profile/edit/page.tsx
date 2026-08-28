@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ID_TYPE_OPTIONS, normalizeIdType } from "@/lib/member-types";
 
 interface MemberData {
   id: string;
@@ -25,7 +26,6 @@ interface PendingRequest {
   reject_reason: string | null;
 }
 
-const ID_TYPES = ["Aadhaar", "Passport", "PAN", "Voter ID", "Other"];
 const QUALIFICATIONS = [
   "Below 10th Grade", "10th Grade", "12th Grade", "Diploma",
   "Graduate", "Post Graduate", "Doctorate", "House Wife", "Student", "Other",
@@ -70,7 +70,7 @@ export default function MemberEditProfilePage() {
           phone: m.phone ?? "",
           email: m.email ?? "",
           qualification: m.qualification ?? "",
-          id_type: m.id_type ?? "",
+          id_type: normalizeIdType(m.id_type),
           id_last4: m.id_last4 ?? "",
         });
       }
@@ -135,6 +135,12 @@ export default function MemberEditProfilePage() {
       </div>
     );
   }
+
+  // Preserve any stored ID type that isn't one of the standard options
+  const extraIdType =
+    form.id_type && !ID_TYPE_OPTIONS.includes(form.id_type as (typeof ID_TYPE_OPTIONS)[number])
+      ? form.id_type
+      : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -265,7 +271,8 @@ export default function MemberEditProfilePage() {
                       className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green bg-white"
                     >
                       <option value="">Select…</option>
-                      {ID_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      {extraIdType && <option value={extraIdType}>{extraIdType}</option>}
+                      {ID_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>

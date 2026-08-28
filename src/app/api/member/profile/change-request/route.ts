@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { normalizeIdType } from "@/lib/member-types";
 
 function ext(file: File) {
   return file.name.split(".").pop()?.toLowerCase() ?? "jpg";
@@ -75,7 +76,13 @@ export async function POST(request: NextRequest) {
   for (const field of fields) {
     const val = (formData.get(field) as string | null)?.trim() ?? "";
     const current = (member[field] ?? "") as string;
-    if (val !== current) {
+    // Compare id_type in canonical form so a stored "voter_id" doesn't look
+    // different from the "Voter ID" the form displays.
+    if (field === "id_type") {
+      if (normalizeIdType(val) !== normalizeIdType(current)) {
+        changes[field] = normalizeIdType(val);
+      }
+    } else if (val !== current) {
       changes[field] = val;
     }
   }

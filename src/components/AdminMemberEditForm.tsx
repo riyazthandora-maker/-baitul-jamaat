@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Pencil, X, Check } from "lucide-react";
+import { ID_TYPE_OPTIONS, normalizeIdType } from "@/lib/member-types";
 
 interface Props {
   memberId: string;
@@ -18,7 +19,6 @@ interface Props {
   };
 }
 
-const ID_TYPES = ["Aadhaar", "Passport", "PAN", "Voter ID", "Other"];
 const QUALIFICATIONS = [
   "Below 10th Grade", "10th Grade", "12th Grade", "Diploma",
   "Graduate", "Post Graduate", "Doctorate", "House Wife", "Student", "Other",
@@ -38,12 +38,18 @@ export default function AdminMemberEditForm({ memberId, member }: Props) {
     gender: member.gender ?? "",
     address: member.address ?? "",
     qualification: member.qualification ?? "",
-    id_type: member.id_type ?? "",
+    id_type: normalizeIdType(member.id_type),
     id_last4: member.id_last4 ?? "",
   });
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  // Preserve any stored ID type that isn't one of the standard options
+  const extraIdType =
+    form.id_type && !ID_TYPE_OPTIONS.includes(form.id_type as (typeof ID_TYPE_OPTIONS)[number])
+      ? form.id_type
+      : null;
 
   const handleSave = async () => {
     setSaving(true);
@@ -112,7 +118,8 @@ export default function AdminMemberEditForm({ memberId, member }: Props) {
               <label className="text-xs text-gray-500 uppercase tracking-wide">ID Type</label>
               <select value={form.id_type} onChange={set("id_type")} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green bg-white">
                 <option value="">Select…</option>
-                {ID_TYPES.map((t) => <option key={t}>{t}</option>)}
+                {extraIdType && <option value={extraIdType}>{extraIdType}</option>}
+                {ID_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>

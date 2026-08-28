@@ -4,6 +4,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { memberRegistrationSchema } from "@/lib/validators/member";
 import { detectDuplicates } from "@/lib/gemini";
 import { sendEmail } from "@/lib/email";
+import { normalizeIdType } from "@/lib/member-types";
 
 export async function POST(
   request: NextRequest,
@@ -23,7 +24,7 @@ export async function POST(
       dob: (formData.get("dob") as string) || null,
       gender: (formData.get("gender") as string) || null,
       address: (formData.get("address") as string) || null,
-      id_type: (formData.get("id_type") as string) || null,
+      id_type: normalizeIdType(formData.get("id_type") as string) || null,
       id_last4: (formData.get("id_last4") as string) || null,
       qualification: formData.get("qualification") as string,
     };

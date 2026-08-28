@@ -14,6 +14,7 @@ import {
   CreditCard,
   Info,
 } from "lucide-react";
+import { normalizeIdType } from "@/lib/member-types";
 
 type OcrResult = {
   name: string | null;
@@ -122,7 +123,7 @@ export default function RegisterPage() {
             dob: ocr?.dob ?? prev.dob,
             gender: ocr?.gender ?? prev.gender,
             address: ocr?.address ?? prev.address,
-            id_type: ocr?.id_type ?? prev.id_type,
+            id_type: ocr?.id_type ? normalizeIdType(ocr.id_type) : prev.id_type,
             id_last4: ocr?.id_last4 ?? prev.id_last4,
           }));
           setOcrDone(true);
@@ -459,11 +460,11 @@ export default function RegisterPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
               >
                 <option value="">Select</option>
-                <option value="aadhaar">Aadhaar</option>
-                <option value="passport">Passport</option>
-                <option value="pan">PAN Card</option>
-                <option value="voter_id">Voter ID</option>
-                <option value="other">Other</option>
+                <option value="Aadhaar">Aadhaar</option>
+                <option value="Passport">Passport</option>
+                <option value="PAN">PAN Card</option>
+                <option value="Voter ID">Voter ID</option>
+                <option value="Other">Other</option>
               </select>
             </div>
             <div>

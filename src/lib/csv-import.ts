@@ -1,3 +1,5 @@
+import { ID_TYPE_OPTIONS, normalizeIdType } from "@/lib/member-types";
+
 export interface ImportRow {
   full_name: string;
   phone: string;
@@ -35,7 +37,6 @@ const PHONE_RE = /^(\+91|0)?[6-9]\d{9}$|^\+971[0-9]{8,9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_GENDERS = ["Male", "Female", "Other"];
-const VALID_ID_TYPES = ["Aadhaar", "Passport", "PAN", "Voter ID", "Other"];
 
 export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
   const errors: string[] = [];
@@ -71,8 +72,8 @@ export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
     errors.push("Qualification is required");
   }
 
-  if (row.id_type && row.id_type.trim() && !VALID_ID_TYPES.includes(row.id_type.trim())) {
-    errors.push(`ID type must be one of: ${VALID_ID_TYPES.join(", ")}`);
+  if (row.id_type && row.id_type.trim() && !(ID_TYPE_OPTIONS as readonly string[]).includes(row.id_type.trim())) {
+    errors.push(`ID type must be one of: ${ID_TYPE_OPTIONS.join(", ")}`);
   }
 
   if (row.id_last4 && row.id_last4.trim()) {
@@ -116,7 +117,7 @@ export function parseCSV(text: string): ImportRow[] {
       gender: obj["gender"] ?? "",
       address: obj["address"] ?? "",
       qualification: obj["qualification"] ?? "",
-      id_type: obj["id_type"] ?? "",
+      id_type: normalizeIdType(obj["id_type"]) || "",
       id_last4: obj["id_last4"] ?? "",
       opening_balance: obj["opening_balance"] ?? "",
     };

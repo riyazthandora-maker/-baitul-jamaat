@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { normalizeIdType } from "@/lib/member-types";
 
 export async function PATCH(
   request: NextRequest,
@@ -37,6 +38,10 @@ export async function PATCH(
     if (key in body) {
       updates[key] = body[key] === "" ? null : body[key];
     }
+  }
+
+  if (updates.id_type !== undefined && updates.id_type !== null) {
+    updates.id_type = normalizeIdType(updates.id_type);
   }
 
   if (Object.keys(updates).length === 0) {
