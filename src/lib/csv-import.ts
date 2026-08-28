@@ -1,3 +1,5 @@
+import { ID_TYPE_OPTIONS, normalizeIdType } from "@/lib/member-types";
+
 export interface ImportRow {
   full_name: string;
   phone: string;
@@ -35,7 +37,6 @@ const PHONE_RE = /^(\+91|0)?[6-9]\d{9}$|^\+971[0-9]{8,9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_GENDERS = ["Male", "Female", "Other"];
-const VALID_ID_TYPES = ["Aadhaar", "Passport", "PAN", "Voter ID", "Other"];
 
 export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
   const errors: string[] = [];
@@ -71,8 +72,8 @@ export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
     errors.push("Qualification is required");
   }
 
-  if (row.id_type && row.id_type.trim() && !VALID_ID_TYPES.includes(row.id_type.trim())) {
-    errors.push(`ID type must be one of: ${VALID_ID_TYPES.join(", ")}`);
+  if (row.id_type && row.id_type.trim() && !(ID_TYPE_OPTIONS as readonly string[]).includes(row.id_type.trim())) {
+    errors.push(`ID type must be one of: ${ID_TYPE_OPTIONS.join(", ")}`);
   }
 
   if (row.id_last4 && row.id_last4.trim()) {
@@ -116,7 +117,7 @@ export function parseCSV(text: string): ImportRow[] {
       gender: obj["gender"] ?? "",
       address: obj["address"] ?? "",
       qualification: obj["qualification"] ?? "",
-      id_type: obj["id_type"] ?? "",
+      id_type: normalizeIdType(obj["id_type"]) || "",
       id_last4: obj["id_last4"] ?? "",
       opening_balance: obj["opening_balance"] ?? "",
     };
@@ -148,8 +149,15 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
+// Quote fields containing a comma, quote, or newline so spreadsheet apps
+// don't split them into extra cells (RFC 4180).
+function csvEscape(value: string | number): string {
+  const s = String(value);
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
 export function generateTemplateCSV(): string {
-  const header = CSV_TEMPLATE_HEADERS.join(",");
+  const header = CSV_TEMPLATE_HEADERS.map(csvEscape).join(",");
   const example1 = [
     "Ahmed Ali",
     "+919876543210",
@@ -161,7 +169,9 @@ export function generateTemplateCSV(): string {
     "Aadhaar",
     "1234",
     "500",
-  ].join(",");
+  ]
+    .map(csvEscape)
+    .join(",");
   const example2 = [
     "Fatima Begum",
     "+919876543211",
@@ -173,6 +183,8 @@ export function generateTemplateCSV(): string {
     "Passport",
     "5678",
     "0",
-  ].join(",");
+  ]
+    .map(csvEscape)
+    .join(",");
   return [header, example1, example2].join("\n");
 }
