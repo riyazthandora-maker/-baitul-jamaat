@@ -108,6 +108,7 @@ export interface Database {
           gender: string | null;
           address: string | null;
           qualification: string | null;
+          job: string | null;
           phone: string;
           email: string | null;
           duplicate_flag: string | null;
@@ -130,6 +131,7 @@ export interface Database {
           gender?: string | null;
           address?: string | null;
           qualification?: string | null;
+          job?: string | null;
           phone: string;
           email?: string | null;
           duplicate_flag?: string | null;
@@ -152,6 +154,7 @@ export interface Database {
           gender?: string | null;
           address?: string | null;
           qualification?: string | null;
+          job?: string | null;
           phone?: string;
           email?: string | null;
           duplicate_flag?: string | null;

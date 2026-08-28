@@ -83,6 +83,7 @@ export default async function MemberReviewPage({
     { label: "ID Type", value: member.id_type },
     { label: "Last 4 Digits", value: member.id_last4 },
     { label: "Qualification", value: member.qualification },
+    { label: "Job", value: member.job },
     {
       label: "Submitted",
       value: new Date(member.created_at).toLocaleString("en-IN"),
@@ -132,6 +133,7 @@ export default async function MemberReviewPage({
                   gender: member.gender ?? null,
                   address: member.address ?? null,
                   qualification: member.qualification ?? null,
+                  job: member.job ?? null,
                   id_type: member.id_type ?? null,
                   id_last4: member.id_last4 ?? null,
                 }}

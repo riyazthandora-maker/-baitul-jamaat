@@ -45,21 +45,21 @@ const MASJID_CODE = "BJM";
 const ADMIN_PHONE = "9000000000";
 
 const MEMBERS_DATA = [
-  { full_name: "Mohammed Salim", phone: "9100000001", dob: "1975-03-12", gender: "Male", address: "12 Mosque Road, Calicut", qualification: "Teacher" },
-  { full_name: "Fathima Salim", phone: "9100000002", dob: "1978-06-20", gender: "Female", address: "12 Mosque Road, Calicut", qualification: "Homemaker" },
-  { full_name: "Ahmed Salim", phone: "9100000003", dob: "2001-01-15", gender: "Male", address: "12 Mosque Road, Calicut", qualification: "Student" },
-  { full_name: "Abdul Rahman", phone: "9100000004", dob: "1968-11-05", gender: "Male", address: "45 Main Street, Calicut", qualification: "Business" },
-  { full_name: "Zainab Rahman", phone: "9100000005", dob: "1972-08-14", gender: "Female", address: "45 Main Street, Calicut", qualification: "Homemaker" },
-  { full_name: "Hassan Rahman", phone: "9100000006", dob: "1998-04-22", gender: "Male", address: "45 Main Street, Calicut", qualification: "Software Engineer" },
-  { full_name: "Noora Hassan", phone: "9100000007", dob: "2002-09-30", gender: "Female", address: "45 Main Street, Calicut", qualification: "Student" },
-  { full_name: "Ibrahim Kunhi", phone: "9100000008", dob: "1960-02-18", gender: "Male", address: "8 Beach Road, Kozhikode", qualification: "Retired" },
-  { full_name: "Mariam Ibrahim", phone: "9100000009", dob: "1963-07-25", gender: "Female", address: "8 Beach Road, Kozhikode", qualification: "Homemaker" },
-  { full_name: "Yusuf Ibrahim", phone: "9100000010", dob: "1990-12-10", gender: "Male", address: "8 Beach Road, Kozhikode", qualification: "Accountant" },
-  { full_name: "Safiya Yusuf", phone: "9100000011", dob: "1993-05-08", gender: "Female", address: "8 Beach Road, Kozhikode", qualification: "Nurse" },
-  { full_name: "Omar Farooq", phone: "9100000012", dob: "1985-10-01", gender: "Male", address: "22 Hill View, Calicut", qualification: "Driver" },
-  { full_name: "Ruqayyah Omar", phone: "9100000013", dob: "1987-03-17", gender: "Female", address: "22 Hill View, Calicut", qualification: "Teacher" },
-  { full_name: "Ali Hasan", phone: "9100000014", dob: "1955-12-28", gender: "Male", address: "3 Old Town, Calicut", qualification: "Retired" },
-  { full_name: "Amina Ali", phone: "9100000015", dob: "1958-04-03", gender: "Female", address: "3 Old Town, Calicut", qualification: "Homemaker" },
+  { full_name: "Mohammed Salim", phone: "9100000001", dob: "1975-03-12", gender: "Male", address: "12 Mosque Road, Calicut", qualification: "Degree (BA/BSc/MBBS/BTech etc.)", job: "Teacher" },
+  { full_name: "Fathima Salim", phone: "9100000002", dob: "1978-06-20", gender: "Female", address: "12 Mosque Road, Calicut", qualification: "SSLC", job: "House Wife" },
+  { full_name: "Ahmed Salim", phone: "9100000003", dob: "2001-01-15", gender: "Male", address: "12 Mosque Road, Calicut", qualification: "Plus 2", job: "Student" },
+  { full_name: "Abdul Rahman", phone: "9100000004", dob: "1968-11-05", gender: "Male", address: "45 Main Street, Calicut", qualification: "Masters", job: "Business" },
+  { full_name: "Zainab Rahman", phone: "9100000005", dob: "1972-08-14", gender: "Female", address: "45 Main Street, Calicut", qualification: "Degree (BA/BSc/MBBS/BTech etc.)", job: "House Wife" },
+  { full_name: "Hassan Rahman", phone: "9100000006", dob: "1998-04-22", gender: "Male", address: "45 Main Street, Calicut", qualification: "Degree (BA/BSc/MBBS/BTech etc.)", job: "Software Engineer" },
+  { full_name: "Noora Hassan", phone: "9100000007", dob: "2002-09-30", gender: "Female", address: "45 Main Street, Calicut", qualification: "Basic education", job: "Student" },
+  { full_name: "Ibrahim Kunhi", phone: "9100000008", dob: "1960-02-18", gender: "Male", address: "8 Beach Road, Kozhikode", qualification: "SSLC", job: "Retired" },
+  { full_name: "Mariam Ibrahim", phone: "9100000009", dob: "1963-07-25", gender: "Female", address: "8 Beach Road, Kozhikode", qualification: "Basic education", job: "House Wife" },
+  { full_name: "Yusuf Ibrahim", phone: "9100000010", dob: "1990-12-10", gender: "Male", address: "8 Beach Road, Kozhikode", qualification: "Masters", job: "Accountant" },
+  { full_name: "Safiya Yusuf", phone: "9100000011", dob: "1993-05-08", gender: "Female", address: "8 Beach Road, Kozhikode", qualification: "Diploma", job: "Nurse" },
+  { full_name: "Omar Farooq", phone: "9100000012", dob: "1985-10-01", gender: "Male", address: "22 Hill View, Calicut", qualification: "SSLC", job: "Driver" },
+  { full_name: "Ruqayyah Omar", phone: "9100000013", dob: "1987-03-17", gender: "Female", address: "22 Hill View, Calicut", qualification: "Degree (BA/BSc/MBBS/BTech etc.)", job: "Teacher" },
+  { full_name: "Ali Hasan", phone: "9100000014", dob: "1955-12-28", gender: "Male", address: "3 Old Town, Calicut", qualification: "Basic education", job: "Retired" },
+  { full_name: "Amina Ali", phone: "9100000015", dob: "1958-04-03", gender: "Female", address: "3 Old Town, Calicut", qualification: "SSLC", job: "House Wife" },
 ];
 
 async function createUserIfNotExists(phone, fullName, appMeta, userMeta) {
@@ -158,7 +158,8 @@ async function main() {
       dob: m.dob,
       gender: m.gender,
       address: m.address,
-      qualification: m.qualification,
+      qualification: m.qualification ?? null,
+      job: m.job ?? null,
       phone: m.phone,
     }).select("id").single();
 

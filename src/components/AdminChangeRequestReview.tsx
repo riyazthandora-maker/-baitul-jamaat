@@ -15,6 +15,7 @@ const FIELD_LABELS: Record<string, string> = {
   phone: "Phone",
   email: "Email",
   qualification: "Qualification",
+  job: "Job",
   id_type: "ID Type",
   id_last4: "ID Last 4",
 };

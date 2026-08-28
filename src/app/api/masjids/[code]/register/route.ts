@@ -26,7 +26,8 @@ export async function POST(
       address: (formData.get("address") as string) || null,
       id_type: normalizeIdType(formData.get("id_type") as string) || null,
       id_last4: (formData.get("id_last4") as string) || null,
-      qualification: formData.get("qualification") as string,
+      qualification: (formData.get("qualification") as string) || null,
+      job: (formData.get("job") as string) || null,
     };
 
     const parsed = memberRegistrationSchema.safeParse(raw);
@@ -155,7 +156,8 @@ export async function POST(
       address: parsed.data.address || null,
       id_type: parsed.data.id_type || null,
       id_last4: parsed.data.id_last4 || null,
-      qualification: parsed.data.qualification,
+      qualification: parsed.data.qualification || null,
+      job: parsed.data.job || null,
       photo_url,
       id_doc_url,
       id_doc_back_url,

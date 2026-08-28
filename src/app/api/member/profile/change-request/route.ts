@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
   const { data: member } = await supabase
     .from("members")
-    .select("id, full_name, phone, email, qualification, id_type, id_last4, photo_url")
+    .select("id, full_name, phone, email, qualification, job, id_type, id_last4, photo_url")
     .eq("profile_id", user.id)
     .maybeSingle();
 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
 
   const changes: Record<string, string> = {};
-  const fields = ["full_name", "phone", "email", "qualification", "id_type", "id_last4"] as const;
+  const fields = ["full_name", "phone", "email", "qualification", "job", "id_type", "id_last4"] as const;
 
   for (const field of fields) {
     const val = (formData.get(field) as string | null)?.trim() ?? "";

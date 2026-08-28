@@ -31,7 +31,7 @@ export async function PATCH(
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
-  const allowed = ["full_name", "phone", "email", "dob", "gender", "address", "qualification", "id_type", "id_last4"];
+  const allowed = ["full_name", "phone", "email", "dob", "gender", "address", "qualification", "job", "id_type", "id_last4"];
   const updates: Record<string, string | null> = {};
 
   for (const key of allowed) {

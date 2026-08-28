@@ -1,5 +1,15 @@
 export const ID_TYPE_OPTIONS = ["Aadhaar", "Passport", "PAN", "Voter ID", "Other"] as const;
 
+export const QUALIFICATION_OPTIONS = [
+  "Basic education",
+  "SSLC",
+  "Plus 2",
+  "Diploma",
+  "Degree (BA/BSc/MBBS/BTech etc.)",
+  "Masters",
+  "Doctorate",
+] as const;
+
 // Canonicalize every representation of a document type (snake_case from the
 // registration form / OCR, Title Case from admin and CSV import) to one form.
 const ID_TYPE_ALIASES: Record<string, string> = {
