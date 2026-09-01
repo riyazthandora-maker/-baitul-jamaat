@@ -37,7 +37,7 @@ export const CSV_TEMPLATE_HEADERS: string[] = [
 
 const PHONE_RE = /^(\+91|0)?[6-9]\d{9}$|^\+971[0-9]{8,9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DATE_RE = /^\d{2}-\d{2}-\d{4}$/;
 const VALID_GENDERS = ["Male", "Female", "Other"];
 
 export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
@@ -57,10 +57,10 @@ export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
 
   if (row.date_of_birth && row.date_of_birth.trim()) {
     if (!DATE_RE.test(row.date_of_birth.trim())) {
-      errors.push("Date of birth must be in YYYY-MM-DD format");
+      errors.push("Date of birth must be in DD-MM-YYYY format");
     } else {
-      const d = new Date(row.date_of_birth.trim());
-      if (isNaN(d.getTime())) {
+      const d = parseDMY(row.date_of_birth.trim());
+      if (!d || isNaN(d.getTime())) {
         errors.push("Date of birth is not a valid date");
       }
     }
@@ -111,7 +111,7 @@ export function parseCSV(text: string): ImportRow[] {
       full_name: obj["full_name"] ?? "",
       phone: obj["phone"] ?? "",
       email: obj["email"] ?? "",
-      date_of_birth: obj["date_of_birth"] ?? "",
+      date_of_birth: dmyToIso(obj["date_of_birth"] ?? ""),
       gender: obj["gender"] ?? "",
       address: obj["address"] ?? "",
       qualification: obj["qualification"] ?? "",
@@ -121,6 +121,18 @@ export function parseCSV(text: string): ImportRow[] {
       opening_balance: obj["opening_balance"] ?? "",
     };
   });
+}
+
+function parseDMY(s: string): Date | null {
+  const [dd, mm, yyyy] = s.split("-");
+  if (!dd || !mm || !yyyy) return null;
+  return new Date(`${yyyy}-${mm}-${dd}`);
+}
+
+function dmyToIso(s: string): string {
+  if (!s || !DATE_RE.test(s)) return s;
+  const [dd, mm, yyyy] = s.split("-");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function parseCSVLine(line: string): string[] {
@@ -161,7 +173,7 @@ export function generateTemplateCSV(): string {
     "Ahmed Ali",
     "+919876543210",
     "ahmed@example.com",
-    "1985-06-15",
+    "15-06-1985",
     "Male",
     "123 Main Street, City",
     "Degree (BA/BSc/MBBS/BTech etc.)",
@@ -176,7 +188,7 @@ export function generateTemplateCSV(): string {
     "Fatima Begum",
     "+919876543211",
     "",
-    "1990-03-22",
+    "22-03-1990",
     "Female",
     "456 Park Road, Town",
     "SSLC",
