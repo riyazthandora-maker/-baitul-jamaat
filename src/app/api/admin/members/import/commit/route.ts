@@ -22,7 +22,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const rows: ImportRow[] = body.rows;
+  const rows: ImportRow[] = body.rows.map((r: ImportRow) => ({
+    ...r,
+    opening_balance: r.opening_balance?.trim() || "0",
+  }));
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "No rows provided" }, { status: 400 });
