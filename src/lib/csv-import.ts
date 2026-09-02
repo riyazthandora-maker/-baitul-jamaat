@@ -111,7 +111,7 @@ export function parseCSV(text: string): ImportRow[] {
       full_name: obj["full_name"] ?? "",
       phone: obj["phone"] ?? "",
       email: obj["email"] ?? "",
-      date_of_birth: dmyToIso(obj["date_of_birth"] ?? ""),
+      date_of_birth: obj["date_of_birth"] ?? "",
       gender: obj["gender"] ?? "",
       address: obj["address"] ?? "",
       qualification: obj["qualification"] ?? "",
@@ -129,7 +129,7 @@ function parseDMY(s: string): Date | null {
   return new Date(`${yyyy}-${mm}-${dd}`);
 }
 
-function dmyToIso(s: string): string {
+export function dmyToIso(s: string): string {
   if (!s || !DATE_RE.test(s)) return s;
   const [dd, mm, yyyy] = s.split("-");
   return `${yyyy}-${mm}-${dd}`;
