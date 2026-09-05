@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { masjidSchema } from "@/lib/validators/masjid";
-import { generateTempPassword } from "@/lib/utils";
+import { generateTempPassword, getAppUrl } from "@/lib/utils";
 import { sendEmail } from "@/lib/email";
 import type { Masjid } from "@/types/database";
 import { ZodError } from "zod";
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       .eq("id", applicationId);
 
     if (application?.email) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const appUrl = getAppUrl(req.nextUrl.origin);
       await sendEmail({
         to: application.email,
         subject: `Your Masjid is Ready — ${masjid.name}`,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
 import { parseOtpCtx, hashCode } from "@/lib/otp";
+import { getAppUrl } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
   // Generate a magic link — the client will navigate to this URL; Supabase
   // redirects to /auth/callback with the session tokens in the URL hash,
   // and the client-side callback page calls setSession() to persist them.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const appUrl = getAppUrl(request.nextUrl.origin);
 
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: "magiclink",

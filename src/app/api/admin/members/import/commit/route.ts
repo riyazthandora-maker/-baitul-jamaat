@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { validateRow, dmyToIso } from "@/lib/csv-import";
+import { validateRow } from "@/lib/csv-import";
 import type { ImportRow } from "@/lib/csv-import";
 
 const MAX_ROWS = 500;
@@ -47,16 +47,11 @@ export async function POST(request: NextRequest) {
 
   const adminSupabase = await createAdminClient();
 
-  const rpcRows = rows.map((r) => ({
-    ...r,
-    date_of_birth: dmyToIso(r.date_of_birth),
-  }));
-
   const { data: rpcResult, error: rpcError } = await adminSupabase.rpc(
     "bulk_import_members",
     {
       p_masjid_id: masjidId,
-      p_rows: rpcRows,
+      p_rows: rows,
       p_actor_id: user.id,
     }
   );
