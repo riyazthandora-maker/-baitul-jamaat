@@ -109,5 +109,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
   }
 
-  return NextResponse.json({ actionLink: linkData.properties.action_link });
+  // Supabase can use its configured Site URL when building the action link.
+  // Override that value so a stale localhost setting cannot redirect production users.
+  const actionUrl = new URL(linkData.properties.action_link);
+  actionUrl.searchParams.set("redirect_to", `${appUrl}/auth/callback`);
+
+  return NextResponse.json({ actionLink: actionUrl.toString() });
 }
