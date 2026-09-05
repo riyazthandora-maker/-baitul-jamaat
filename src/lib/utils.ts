@@ -20,7 +20,9 @@ export function getAppUrl(requestOrigin?: string): string {
     }
   }
 
-  return requestOrigin || "http://localhost:3000";
+  return requestOrigin && !requestOrigin.includes("localhost")
+    ? requestOrigin
+    : PRODUCTION_APP_URL;
 }
 
 export function generateTempPassword(length = 12): string {
