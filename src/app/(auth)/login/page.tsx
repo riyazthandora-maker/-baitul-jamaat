@@ -62,8 +62,11 @@ export default function LoginPage() {
           ? await memberLoginAction(formData)
           : await loginAction(formData);
 
-      if (!result) return; // redirect was called server-side
-      if (result.error) {
+      if ("redirect" in result) {
+        window.location.href = result.redirect;
+        return;
+      }
+      if ("error" in result) {
         setError(result.error);
         return;
       }

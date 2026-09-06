@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { signOtpCtx, generateOtp, maskEmail, otpEmailHtml } from "@/lib/otp";
 import { sendEmail } from "@/lib/email";
@@ -55,9 +54,14 @@ async function initiateOtp(
   });
 }
 
+type LoginResult =
+  | { error: string }
+  | { redirect: string }
+  | { step: "otp"; maskedEmail: string };
+
 // ── Staff / Admin login ───────────────────────────────────────────────────────
 
-export async function loginAction(formData: FormData) {
+export async function loginAction(formData: FormData): Promise<LoginResult> {
   const phone = (formData.get("phone") as string)?.trim();
   const password = formData.get("password") as string;
 
@@ -87,8 +91,8 @@ export async function loginAction(formData: FormData) {
 
   // Members: no OTP — proceed directly
   if (role === "member") {
-    if (forceChange) redirect("/change-password");
-    redirect("/member/dashboard");
+    if (forceChange) return { redirect: "/change-password" };
+    return { redirect: "/member/dashboard" };
   }
 
   // Admins: sign out immediately, then run OTP flow
@@ -102,9 +106,9 @@ export async function loginAction(formData: FormData) {
       console.warn(`[OTP] No email configured for ${role} (userId=${userId}). Skipping OTP.`);
       const { data: reData } = await supabase.auth.signInWithPassword({ email: emailAlias, password });
       if (!reData?.user) return { error: "Login failed. Please try again." };
-      if (forceChange) redirect("/change-password");
-      if (role === "super_admin") redirect("/superadmin/dashboard");
-      redirect("/admin/dashboard");
+      if (forceChange) return { redirect: "/change-password" };
+      if (role === "super_admin") return { redirect: "/superadmin/dashboard" };
+      return { redirect: "/admin/dashboard" };
     }
 
     await initiateOtp(userId, email);
@@ -115,12 +119,12 @@ export async function loginAction(formData: FormData) {
     };
   }
 
-  redirect("/login");
+  return { redirect: "/login" };
 }
 
-// ── Member login (unchanged) ──────────────────────────────────────────────────
+// ── Member login ──────────────────────────────────────────────────────────────
 
-export async function memberLoginAction(formData: FormData) {
+export async function memberLoginAction(formData: FormData): Promise<{ error: string } | { redirect: string }> {
   const memberId = (formData.get("member_id") as string)?.trim().toUpperCase();
   const password = formData.get("password") as string;
 
@@ -150,8 +154,8 @@ export async function memberLoginAction(formData: FormData) {
   }
 
   if (data.user.app_metadata?.force_password_change) {
-    redirect("/change-password");
+    return { redirect: "/change-password" };
   }
 
-  redirect("/member/dashboard");
+  return { redirect: "/member/dashboard" };
 }
