@@ -261,8 +261,7 @@ function EntryRow({
         setReceiptError(data.error ?? "Could not generate receipt");
         return;
       }
-      window.open(`/api/admin/revenue-expenses/${entry.id}/receipt`, "_blank", "noopener,noreferrer");
-      onUpdated({ ...entry, receipt_number: data.entry.receipt_number });
+      window.location.href = `/admin/receipts?receipt=${encodeURIComponent(data.entry.receipt_number)}`;
     } catch {
       setReceiptError("Could not generate receipt");
     } finally {
