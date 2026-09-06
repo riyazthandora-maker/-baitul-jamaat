@@ -3,12 +3,17 @@ import Link from "next/link";
 import { Plus, FileText, Ban, Heart } from "lucide-react";
 import VoidButton from "@/components/VoidButton";
 
-export default async function ReceiptsPage() {
+export default async function ReceiptsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ receipt?: string }>;
+}) {
+  const { receipt: selectedReceipt } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const masjidId = user?.app_metadata?.masjid_id;
 
-  const [{ data: receipts }, { data: donations }] = await Promise.all([
+  const [{ data: receipts }, { data: donations }, { data: externalReceipts }] = await Promise.all([
     supabase
       .from("receipts")
       .select("*, members(full_name, member_number)")
@@ -19,6 +24,16 @@ export default async function ReceiptsPage() {
       .from("donations")
       .select("*")
       .eq("masjid_id", masjidId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("revenue_expenses")
+      .select("id, date, created_at, amount, remarks, receipt_number, entity_id, contacts(name, phone)")
+      .eq("masjid_id", masjidId)
+      .eq("type", "revenue")
+      .eq("entity_type", "contact")
+      .not("receipt_number", "is", null)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(100),
   ]);
@@ -84,6 +99,47 @@ export default async function ReceiptsPage() {
                   {!r.voided_at && (
                     <VoidButton endpoint={`/api/admin/receipts/${r.id}/void`} />
                   )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Donations */}
+      {/* External contact receipts */}
+      <div className="space-y-3">
+        <h2 className="font-semibold text-gray-600 text-sm uppercase tracking-wide">External Contact Receipts</h2>
+        {!externalReceipts?.length ? (
+          <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-400 text-sm">
+            No external contact receipts yet.
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm divide-y">
+            {externalReceipts.map((r) => {
+              const contact = Array.isArray(r.contacts)
+                ? r.contacts[0] as { name: string; phone: string | null } | undefined
+                : r.contacts as { name: string; phone: string | null } | null;
+              const selected = r.receipt_number === selectedReceipt;
+              return (
+                <div key={r.id} className={`flex items-center gap-4 px-5 py-4 ${selected ? "bg-green-50 ring-1 ring-inset ring-brand-green" : ""}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{contact?.name ?? "External contact"}</p>
+                    <p className="text-xs text-gray-400">
+                      {r.receipt_number} · {new Date(r.created_at).toLocaleDateString("en-IN")}
+                      {r.remarks && ` · ${r.remarks}`}
+                    </p>
+                  </div>
+                  <p className="font-semibold text-brand-green flex-shrink-0">₹{Number(r.amount).toFixed(0)}</p>
+                  <a
+                    href={`/api/admin/revenue-expenses/${r.id}/receipt`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-gray-400 hover:text-brand-green transition-colors flex-shrink-0"
+                    title="Download receipt PDF"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </a>
                 </div>
               );
             })}

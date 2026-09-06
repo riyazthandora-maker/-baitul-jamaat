@@ -235,6 +235,8 @@ function EntryRow({
 }) {
   const [resending, setResending] = useState(false);
   const [resendDone, setResendDone] = useState(false);
+  const [generatingReceipt, setGeneratingReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
 
   const docNumber = entry.type === "revenue" ? entry.receipt_number : entry.voucher_number;
   const isRevenue = entry.type === "revenue";
@@ -245,6 +247,26 @@ function EntryRow({
     setResending(false);
     setResendDone(true);
     setTimeout(() => setResendDone(false), 3000);
+  }
+
+  async function handleGenerateReceipt() {
+    setGeneratingReceipt(true);
+    setReceiptError(null);
+    try {
+      const res = await fetch(`/api/admin/revenue-expenses/${entry.id}/generate-receipt`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.entry?.receipt_number) {
+        setReceiptError(data.error ?? "Could not generate receipt");
+        return;
+      }
+      window.location.href = `/admin/receipts?receipt=${encodeURIComponent(data.entry.receipt_number)}`;
+    } catch {
+      setReceiptError("Could not generate receipt");
+    } finally {
+      setGeneratingReceipt(false);
+    }
   }
 
   return (
@@ -344,6 +366,23 @@ function EntryRow({
                 </button>
               )}
 
+              {/* Additional receipt option for pending external revenue */}
+              {isRevenue && entry.entity_type === "contact" && !entry.receipt_number && (
+                <button
+                  type="button"
+                  onClick={handleGenerateReceipt}
+                  disabled={generatingReceipt}
+                  title="Generate receipt without marking as received"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/5 transition-colors disabled:opacity-50"
+                >
+                  {generatingReceipt ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <ReceiptText className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+
               {/* Member ledger link */}
               {entry.entity_type === "member" && (
                 <Link
@@ -356,6 +395,9 @@ function EntryRow({
               )}
             </div>
           </div>
+          {receiptError && (
+            <p className="mt-1 text-xs text-red-600">{receiptError}</p>
+          )}
         </div>
       </div>
     </div>
