@@ -54,30 +54,35 @@ export async function proxy(request: NextRequest) {
 
   if (masjidCodeMatch) {
     const code = masjidCodeMatch[1].toUpperCase();
-    // Use service role to bypass RLS — anon key has no public read policy on masjids
-    const serviceSupabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { cookies: { getAll: () => [], setAll: () => {} } }
-    );
-    const { data: masjid, error: masjidErr } = await serviceSupabase
-      .from("masjids")
-      .select("active")
-      .eq("masjid_code", code)
-      .maybeSingle();
+    try {
+      // Use service role to bypass RLS — anon key has no public read policy on masjids
+      const serviceSupabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { cookies: { getAll: () => [], setAll: () => {} } }
+      );
+      const { data: masjid, error: masjidErr } = await serviceSupabase
+        .from("masjids")
+        .select("active")
+        .eq("masjid_code", code)
+        .maybeSingle();
 
-    // If the query itself failed (e.g. missing env var), fail open — let the route handler return the proper error
-    if (masjidErr) {
-      console.error("[middleware] masjid active check failed:", masjidErr.message);
-      return supabaseResponse;
-    }
-
-    // masjid not found, or explicitly inactive
-    if (!masjid || masjid.active === false) {
-      if (masjidApiMatch) {
-        return NextResponse.json({ error: "Masjid is inactive" }, { status: 403 });
+      // If the query itself failed (e.g. missing env var), fail open
+      if (masjidErr) {
+        console.error("[middleware] masjid active check failed:", masjidErr.message);
+        return supabaseResponse;
       }
-      return NextResponse.redirect(new URL("/inactive", request.url));
+
+      // masjid not found, or explicitly inactive
+      if (!masjid || masjid.active === false) {
+        if (masjidApiMatch) {
+          return NextResponse.json({ error: "Masjid is inactive" }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL("/inactive", request.url));
+      }
+    } catch (err) {
+      console.error("[middleware] masjid code check threw:", err);
+      // fail open — let the route handler deal with it
     }
     return supabaseResponse;
   }
@@ -125,17 +130,21 @@ export async function proxy(request: NextRequest) {
   // Helper: check if this admin/member's masjid is active (service role bypasses RLS)
   async function checkMasjidActive() {
     if (!masjidId) return true;
-    const serviceSupabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { cookies: { getAll: () => [], setAll: () => {} } }
-    );
-    const { data } = await serviceSupabase
-      .from("masjids")
-      .select("active")
-      .eq("id", masjidId)
-      .maybeSingle();
-    return data?.active ?? true;
+    try {
+      const serviceSupabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { cookies: { getAll: () => [], setAll: () => {} } }
+      );
+      const { data } = await serviceSupabase
+        .from("masjids")
+        .select("active")
+        .eq("id", masjidId)
+        .maybeSingle();
+      return data?.active ?? true;
+    } catch {
+      return true; // fail open
+    }
   }
 
   // --- Masjid admin routes ---
