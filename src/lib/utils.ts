@@ -5,24 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const PRODUCTION_APP_URL = "https://development.baitul-jamaat.com";
+const FALLBACK_APP_URL = "https://www.baitul-jamaat.com";
 
 export function getAppUrl(requestOrigin?: string): string {
-  if (process.env.NODE_ENV === "production") return PRODUCTION_APP_URL;
-
   const configuredUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configuredUrl) {
     try {
       const url = new URL(configuredUrl);
       if (url.protocol === "http:" || url.protocol === "https:") return url.origin;
     } catch {
-      // Use the request origin when local configuration is invalid.
+      // fall through to request origin
     }
   }
 
-  return requestOrigin && !requestOrigin.includes("localhost")
-    ? requestOrigin
-    : PRODUCTION_APP_URL;
+  if (requestOrigin && !requestOrigin.includes("localhost")) return requestOrigin;
+
+  return FALLBACK_APP_URL;
 }
 
 export function generateTempPassword(length = 12): string {
