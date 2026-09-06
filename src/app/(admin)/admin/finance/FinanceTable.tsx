@@ -367,7 +367,7 @@ function EntryRow({
               )}
 
               {/* Additional receipt option for pending external revenue */}
-              {isRevenue && entry.entity_type === "contact" && !entry.is_received && (
+              {isRevenue && entry.entity_type === "contact" && !entry.receipt_number && (
                 <button
                   type="button"
                   onClick={handleGenerateReceipt}

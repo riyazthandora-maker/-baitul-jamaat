@@ -20,8 +20,9 @@ export async function POST(
     { p_masjid_id: masjidId, p_actor_id: user.id, p_entry_id: id }
   );
 
-  // Support deployments where migration 025 has not been applied yet.
-  if (error?.message.includes("generate_external_revenue_receipt")) {
+  // Support deployments with a missing or outdated database function.
+  if (error) {
+    console.error("[Receipt] RPC failed; using direct compatibility path:", error.message);
     const { data: existing, error: lookupError } = await adminSupabase
       .from("revenue_expenses")
       .select("*")
@@ -52,6 +53,9 @@ export async function POST(
         .is("receipt_number", null)
         .select()
         .maybeSingle();
+      if (updated.error) {
+        return NextResponse.json({ error: updated.error.message }, { status: 400 });
+      }
       entry = updated.data ?? existing;
       error = updated.error;
     } else if (!existing.is_received) {
@@ -62,6 +66,9 @@ export async function POST(
         .eq("masjid_id", masjidId)
         .select()
         .single();
+      if (updated.error) {
+        return NextResponse.json({ error: updated.error.message }, { status: 400 });
+      }
       entry = updated.data;
       error = updated.error;
     } else {
@@ -71,8 +78,9 @@ export async function POST(
   }
 
   if (error || !entry) {
+    const finalError = error as { message?: string } | null;
     return NextResponse.json(
-      { error: error?.message ?? "Unable to generate receipt" },
+      { error: finalError?.message ?? "Unable to generate receipt" },
       { status: 400 }
     );
   }
