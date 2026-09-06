@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/server";
 import { parseOtpCtx, hashCode } from "@/lib/otp";
-import { getAppUrl } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
@@ -93,26 +93,62 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "User not found." }, { status: 500 });
   }
 
-  // Generate a magic link — the client will navigate to this URL; Supabase
-  // redirects to /auth/callback with the session tokens in the URL hash,
-  // and the client-side callback page calls setSession() to persist them.
-  const appUrl = getAppUrl(request.nextUrl.origin);
-
+  // Generate a magic link server-side to get the hashed_token
   const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
     type: "magiclink",
     email: user.email,
-    options: { redirectTo: `${appUrl}/auth/callback` },
   });
 
-  if (linkError || !linkData?.properties?.action_link) {
+  if (linkError || !linkData?.properties?.hashed_token) {
     console.error("[verify-otp] generateLink failed:", linkError?.message);
     return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
   }
 
-  // Supabase can use its configured Site URL when building the action link.
-  // Override that value so a stale localhost setting cannot redirect production users.
-  const actionUrl = new URL(linkData.properties.action_link);
-  actionUrl.searchParams.set("redirect_to", `${appUrl}/auth/callback`);
+  // Exchange the hashed token for a session server-side.
+  // This avoids the redirect_to allowlist restriction entirely — no browser redirect through Supabase.
+  const collectedCookies: { name: string; value: string; options?: CookieOptions }[] = [];
 
-  return NextResponse.json({ actionLink: actionUrl.toString() });
+  const supabaseForSession = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          collectedCookies.push(...cookiesToSet);
+        },
+      },
+    }
+  );
+
+  const { data: sessionData, error: sessionError } = await supabaseForSession.auth.verifyOtp({
+    token_hash: linkData.properties.hashed_token,
+    type: "magiclink",
+  });
+
+  if (sessionError || !sessionData.session) {
+    console.error("[verify-otp] verifyOtp failed:", sessionError?.message);
+    return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
+  }
+
+  const role = sessionData.session.user.app_metadata?.role as string | undefined;
+  const forceChange = !!sessionData.session.user.app_metadata?.force_password_change;
+
+  const redirectPath = forceChange
+    ? "/change-password"
+    : role === "super_admin"
+    ? "/superadmin/dashboard"
+    : role === "masjid_admin"
+    ? "/admin/dashboard"
+    : "/login";
+
+  const finalResponse = NextResponse.json({ redirect: redirectPath });
+
+  collectedCookies.forEach(({ name, value, options }) => {
+    finalResponse.cookies.set(name, value, options ?? {});
+  });
+
+  return finalResponse;
 }
