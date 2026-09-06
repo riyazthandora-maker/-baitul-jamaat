@@ -18,6 +18,7 @@ import { sendEmail } from "@/lib/email";
 //   amount_min   : number
 //   amount_max   : number
 //   search       : string  (receipt/voucher number)
+//   entity_search: string  (member or contact name/number)
 //   page         : number  (1-indexed, default 1)
 //   page_size    : number  (default 20, max 100)
 // ──────────────────────────────────────────────────────────────────────────
@@ -40,10 +41,36 @@ export async function GET(request: NextRequest) {
   const amountMin  = sp.get("amount_min");
   const amountMax  = sp.get("amount_max");
   const search     = sp.get("search");
+  const entitySearch = sp.get("entity_search")?.trim();
   const page       = Math.max(1, parseInt(sp.get("page") ?? "1", 10));
   const pageSize   = Math.min(100, Math.max(1, parseInt(sp.get("page_size") ?? "20", 10)));
   const from       = (page - 1) * pageSize;
   const to         = from + pageSize - 1;
+
+  let entityFilter: string | null = null;
+  if (entitySearch) {
+    const [memberMatches, contactMatches] = await Promise.all([
+      adminSupabase
+        .from("members")
+        .select("id")
+        .eq("masjid_id", masjidId)
+        .or(`full_name.ilike.%${entitySearch}%,member_number.ilike.%${entitySearch}%`)
+        .limit(100),
+      adminSupabase
+        .from("contacts")
+        .select("id")
+        .eq("masjid_id", masjidId)
+        .eq("is_active", true)
+        .ilike("name", `%${entitySearch}%`)
+        .limit(100),
+    ]);
+    const memberIds = (memberMatches.data ?? []).map((row) => row.id);
+    const contactIds = (contactMatches.data ?? []).map((row) => row.id);
+    const clauses: string[] = [];
+    if (memberIds.length) clauses.push(`and(entity_type.eq.member,entity_id.in.(${memberIds.join(",")}))`);
+    if (contactIds.length) clauses.push(`and(entity_type.eq.contact,entity_id.in.(${contactIds.join(",")}))`);
+    entityFilter = clauses.length ? clauses.join(",") : "__no_entity_match__";
+  }
 
   let query = adminSupabase
     .from("revenue_expenses")
@@ -81,6 +108,10 @@ export async function GET(request: NextRequest) {
       `receipt_number.ilike.%${search}%,voucher_number.ilike.%${search}%`
     );
   }
+  if (entityFilter === "__no_entity_match__") {
+    return NextResponse.json({ entries: [], total: 0, page, page_size: pageSize });
+  }
+  if (entityFilter) query = query.or(entityFilter);
 
   const { data: entries, count, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -146,94 +177,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const adminSupabase = await createAdminClient();
-  const txYear = parseInt(parsed.data.date.slice(0, 4), 10);
   const d = parsed.data;
-
-  // Generate receipt/voucher number if the entry is already settled
-  let receiptNumber: string | null = null;
-  let voucherNumber: string | null = null;
-
-  if (d.type === "revenue" && d.is_received) {
-    const { data, error } = await adminSupabase.rpc("next_revenue_receipt_number", {
+  const adminSupabase = await createAdminClient();
+  const { data: entry, error: insertErr } = await adminSupabase.rpc(
+    "create_revenue_expense",
+    {
       p_masjid_id: masjidId,
-      p_year: txYear,
-    });
-    if (error || !data) {
-      return NextResponse.json({ error: "Failed to generate receipt number" }, { status: 500 });
+      p_actor_id: user.id,
+      p_type: d.type,
+      p_date: d.date,
+      p_entity_type: d.entity_type,
+      p_entity_id: d.entity_id,
+      p_amount: d.amount,
+      p_remarks: d.remarks ?? null,
+      p_is_received: d.type === "revenue" ? d.is_received : false,
+      p_is_paid: d.type === "expense" ? d.is_paid : false,
     }
-    receiptNumber = data as string;
-  }
-
-  if (d.type === "expense" && d.is_paid) {
-    const { data, error } = await adminSupabase.rpc("next_expense_voucher_number", {
-      p_masjid_id: masjidId,
-      p_year: txYear,
-    });
-    if (error || !data) {
-      return NextResponse.json({ error: "Failed to generate voucher number" }, { status: 500 });
-    }
-    voucherNumber = data as string;
-  }
-
-  // Insert the main record
-  const { data: entry, error: insertErr } = await adminSupabase
-    .from("revenue_expenses")
-    .insert({
-      masjid_id: masjidId,
-      type: d.type,
-      date: d.date,
-      entity_type: d.entity_type,
-      entity_id: d.entity_id,
-      amount: d.amount,
-      remarks: d.remarks ?? null,
-      is_received: d.type === "revenue" ? d.is_received : false,
-      is_paid: d.type === "expense" ? d.is_paid : false,
-      receipt_number: receiptNumber,
-      voucher_number: voucherNumber,
-      created_by: user.id,
-    })
-    .select()
-    .single();
+  );
 
   if (insertErr || !entry) {
-    return NextResponse.json({ error: "Failed to save entry" }, { status: 500 });
+    return NextResponse.json(
+      { error: insertErr?.message ?? "Failed to save entry" },
+      { status: 500 }
+    );
   }
-
-  // Double-entry ledger for revenue from members
-  if (d.type === "revenue" && d.entity_type === "member") {
-    const chargeDesc = receiptNumber
-      ? `Revenue charge — ${receiptNumber}`
-      : `Revenue demand — ${d.date}`;
-
-    await adminSupabase.from("ledger").insert({
-      masjid_id: masjidId,
-      member_id: d.entity_id,
-      type: "charge",
-      amount: d.amount,
-      description: chargeDesc,
-    });
-
-    if (d.is_received && receiptNumber) {
-      await adminSupabase.from("ledger").insert({
-        masjid_id: masjidId,
-        member_id: d.entity_id,
-        type: "payment",
-        amount: d.amount,
-        description: `Payment received — ${receiptNumber}`,
-      });
-    }
-  }
-
-  // Audit log
-  await adminSupabase.from("audit_log").insert({
-    masjid_id: masjidId,
-    actor_id: user.id,
-    table_name: "revenue_expenses",
-    record_id: entry.id,
-    action: "insert",
-    after_data: entry,
-  });
 
   // Email notification (best-effort; non-blocking)
   void sendReNotification(adminSupabase, masjidId, entry, d.entity_type, d.entity_id).catch(

@@ -30,6 +30,7 @@ type FilterState = {
   amount_min: string;
   amount_max: string;
   search: string;
+  entity_search: string;
   page: number;
 };
 
@@ -62,6 +63,7 @@ const INIT_FILTERS: FilterState = {
   amount_min: "",
   amount_max: "",
   search: "",
+  entity_search: "",
   page: 1,
 };
 
@@ -511,6 +513,15 @@ function FilterBar({
             <option value="contact">Contacts only</option>
           </select>
 
+          {/* Entity search */}
+          <input
+            type="search"
+            placeholder="Member or contact name / ID"
+            value={filters.entity_search}
+            onChange={(e) => onChange({ entity_search: e.target.value, page: 1 })}
+            className="min-w-48 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-green"
+          />
+
           {/* Clear all */}
           <button
             type="button"
@@ -546,6 +557,7 @@ export default function FinanceTable({ refreshKey }: { refreshKey: number }) {
     if (f.amount_min)  params.set("amount_min", f.amount_min);
     if (f.amount_max)  params.set("amount_max", f.amount_max);
     if (f.search)      params.set("search", f.search);
+    if (f.entity_search) params.set("entity_search", f.entity_search);
     params.set("page", String(f.page));
     params.set("page_size", String(PAGE_SIZE));
 

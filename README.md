@@ -62,7 +62,7 @@ NEXT_PUBLIC_APP_URL=https://your-vercel-app.vercel.app
 
 ### 3. Set up the database
 
-In your Supabase dashboard → **SQL Editor → New query**, paste and run the contents of `supabase/run_all_migrations.sql`.
+In your Supabase dashboard, run `supabase/run_all_migrations.sql` first, then run every file in `supabase/migrations/` in numeric order. The later migration files add bulk import, family, application, finance, and other incremental features.
 
 This creates all tables, RLS policies, Postgres functions, and the auth trigger.
 
