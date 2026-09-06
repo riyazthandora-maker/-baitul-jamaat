@@ -63,7 +63,7 @@ export async function POST(
     const folder = `${masjid.id}/${memberId}`;
 
     // Ensure bucket exists (creates it if migration 005 wasn't run)
-    await supabase.storage.createBucket("member-documents", { public: false }).catch(() => {});
+    await storageClient.storage.createBucket("member-documents", { public: false }).catch(() => {});
 
     async function uploadFile(file: File, path: string): Promise<string | null> {
       const bytes = await file.arrayBuffer();
@@ -144,8 +144,9 @@ export async function POST(
       );
     }
 
-    // Insert member row (service role bypasses RLS)
-    const { error: insertErr } = await supabase.from("members").insert({
+    // Insert member row (service role bypasses RLS). Keep a compatibility retry
+    // for databases that have not yet applied migration 019.
+    const memberInsert = {
       id: memberId,
       masjid_id: masjid.id,
       status: "pending",
@@ -164,9 +165,20 @@ export async function POST(
       id_doc_back_url,
       duplicate_flag: dupResult.classification,
       duplicate_reason: dupResult.reason,
-    });
+    };
+
+    let { error: insertErr } = await supabase.from("members").insert(memberInsert);
+
+    if (insertErr?.message.includes("'job' column")) {
+      const { job: _job, ...legacyMemberInsert } = memberInsert;
+      ({ error: insertErr } = await supabase.from("members").insert(legacyMemberInsert));
+      if (!insertErr) {
+        console.warn("[Register] Saved member without job; migration 019 is pending");
+      }
+    }
 
     if (insertErr) {
+      console.error("[Register] member insert error:", insertErr.message);
       return NextResponse.json(
         { error: "Failed to submit registration" },
         { status: 500 }
@@ -179,10 +191,11 @@ export async function POST(
       const flagNote = dupResult.classification === "possible_duplicate"
         ? " <strong style='color:#b45309'>(flagged as possible duplicate — review carefully)</strong>"
         : "";
-      await sendEmail({
-        to: masjid.contact_email,
-        subject: `New Member Registration — ${parsed.data.full_name} — ${masjid.name}`,
-        html: `
+      try {
+        await sendEmail({
+          to: masjid.contact_email,
+          subject: `New Member Registration — ${parsed.data.full_name} — ${masjid.name}`,
+          html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
             <h2 style="color:#166534">New Member Registration Pending</h2>
             <p>A new member has registered and is awaiting your approval.</p>
@@ -200,8 +213,12 @@ export async function POST(
             ${appUrl ? `<p><a href="${appUrl}/admin/members" style="display:inline-block;background:#166534;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Review Now</a></p>` : ""}
           </div>
         `,
-        masjid_id: masjid.id,
-      });
+          masjid_id: masjid.id,
+        });
+      } catch (emailErr) {
+        // Registration is already persisted; notification delivery can be retried later.
+        console.error("[Register] admin notification failed:", emailErr);
+      }
     }
 
     return NextResponse.json({

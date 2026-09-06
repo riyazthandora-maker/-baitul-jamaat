@@ -60,13 +60,20 @@ export async function proxy(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { cookies: { getAll: () => [], setAll: () => {} } }
     );
-    const { data: masjid } = await serviceSupabase
+    const { data: masjid, error: masjidErr } = await serviceSupabase
       .from("masjids")
       .select("active")
       .eq("masjid_code", code)
       .maybeSingle();
 
-    if (!masjid || !masjid.active) {
+    // If the query itself failed (e.g. missing env var), fail open — let the route handler return the proper error
+    if (masjidErr) {
+      console.error("[middleware] masjid active check failed:", masjidErr.message);
+      return supabaseResponse;
+    }
+
+    // masjid not found, or explicitly inactive
+    if (!masjid || masjid.active === false) {
       if (masjidApiMatch) {
         return NextResponse.json({ error: "Masjid is inactive" }, { status: 403 });
       }
