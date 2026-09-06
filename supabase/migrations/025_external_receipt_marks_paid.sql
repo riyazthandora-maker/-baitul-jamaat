@@ -1,5 +1,5 @@
 -- =============================================================
--- Migration 024: receipt generation for pending external revenue
+-- Migration 025: external receipt generation marks revenue as paid
 -- =============================================================
 
 CREATE OR REPLACE FUNCTION generate_external_revenue_receipt(
@@ -30,12 +30,33 @@ BEGIN
   END IF;
 
   IF v_entry.receipt_number IS NOT NULL THEN
+    IF NOT v_entry.is_received THEN
+      UPDATE revenue_expenses
+      SET is_received = TRUE
+      WHERE id = p_entry_id
+      RETURNING * INTO v_entry;
+
+      INSERT INTO audit_log (
+        masjid_id, actor_id, table_name, record_id, action, before_data, after_data
+      ) VALUES (
+        p_masjid_id,
+        p_actor_id,
+        'revenue_expenses',
+        p_entry_id::TEXT,
+        'generate_receipt',
+        jsonb_build_object('receipt_number', v_entry.receipt_number, 'is_received', FALSE),
+        to_jsonb(v_entry)
+      );
+    END IF;
     RETURN to_jsonb(v_entry);
   END IF;
 
-  SELECT next_revenue_receipt_number(p_masjid_id, EXTRACT(YEAR FROM v_entry.date)::INTEGER)
-    INTO v_receipt_number;
+  SELECT next_revenue_receipt_number(
+    p_masjid_id,
+    EXTRACT(YEAR FROM v_entry.date)::INTEGER
+  ) INTO v_receipt_number;
 
+  -- Receipt number and paid status change together only after numbering succeeds.
   UPDATE revenue_expenses
   SET receipt_number = v_receipt_number,
       is_received = TRUE
@@ -45,8 +66,13 @@ BEGIN
   INSERT INTO audit_log (
     masjid_id, actor_id, table_name, record_id, action, before_data, after_data
   ) VALUES (
-    p_masjid_id, p_actor_id, 'revenue_expenses', p_entry_id::TEXT,
-    'generate_receipt', jsonb_build_object('receipt_number', NULL), to_jsonb(v_entry)
+    p_masjid_id,
+    p_actor_id,
+    'revenue_expenses',
+    p_entry_id::TEXT,
+    'generate_receipt',
+    jsonb_build_object('receipt_number', NULL, 'is_received', FALSE),
+    to_jsonb(v_entry)
   );
 
   RETURN to_jsonb(v_entry);
