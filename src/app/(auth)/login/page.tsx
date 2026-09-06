@@ -97,7 +97,7 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = data.actionLink;
+      window.location.href = data.redirect;
     } catch {
       setOtpError("Network error. Please check your connection.");
       setOtpPending(false);
