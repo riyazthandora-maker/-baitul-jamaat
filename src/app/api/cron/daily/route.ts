@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateStatementPdf } from "@/lib/pdf";
 import { sendEmail } from "@/lib/email";
+import { getAppUrl } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const secret = request.headers.get("x-cron-secret") ??
@@ -156,7 +157,7 @@ export async function GET(request: NextRequest) {
         }
 
         // ── Per-member outstanding emails ────────────────────────
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+        const appUrl = getAppUrl(request.nextUrl.origin);
         const upiId = (masjid as { upi_id?: string | null }).upi_id;
 
         const memberEmailPromises = memberStatements

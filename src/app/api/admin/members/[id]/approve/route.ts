@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { generateTempPassword } from "@/lib/utils";
+import { generateTempPassword, getAppUrl } from "@/lib/utils";
 import { sendEmail } from "@/lib/email";
 
 export async function POST(
@@ -103,7 +103,7 @@ export async function POST(
 
   // Gap 7: email credentials to the member if they have an email address
   if (member.email) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const appUrl = getAppUrl(request.nextUrl.origin);
     // Fetch masjid name for the email
     const { data: masjid } = await adminSupabase
       .from("masjids")

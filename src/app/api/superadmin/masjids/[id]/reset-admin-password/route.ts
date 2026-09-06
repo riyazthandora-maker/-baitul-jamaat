@@ -55,7 +55,7 @@ export async function POST(
 
   const { error: updateError } = await adminClient.auth.admin.updateUserById(
     adminUser.id,
-    { password: tempPassword }
+    { password: tempPassword, app_metadata: { force_password_change: true } }
   );
 
   if (updateError) {

@@ -5,6 +5,7 @@ import { memberRegistrationSchema } from "@/lib/validators/member";
 import { detectDuplicates } from "@/lib/gemini";
 import { sendEmail } from "@/lib/email";
 import { normalizeIdType } from "@/lib/member-types";
+import { getAppUrl } from "@/lib/utils";
 
 export async function POST(
   request: NextRequest,
@@ -174,7 +175,7 @@ export async function POST(
 
     // Gap 6: notify masjid admin of the new pending registration
     if (masjid.contact_email) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const appUrl = getAppUrl(request.nextUrl.origin);
       const flagNote = dupResult.classification === "possible_duplicate"
         ? " <strong style='color:#b45309'>(flagged as possible duplicate — review carefully)</strong>"
         : "";

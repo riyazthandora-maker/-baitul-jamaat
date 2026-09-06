@@ -7,6 +7,7 @@ import { Users, Clock, QrCode, Mail, Download, TrendingUp, Receipt } from "lucid
 import QrDownloadButton from "@/components/QrDownloadButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import OutstandingBalanceCard from "@/components/OutstandingBalanceCard";
+import { getAppUrl } from "@/lib/utils";
 
 function OutstandingBalanceSkeleton() {
   return (
@@ -46,9 +47,7 @@ export default async function AdminDashboard() {
 
   const headersList = await headers();
   const host = headersList.get("host") ?? "localhost:3000";
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (host.includes("localhost") ? `http://${host}` : `https://${host}`);
+  const appUrl = getAppUrl(host.includes("localhost") ? `http://${host}` : `https://${host}`);
   const registrationUrl = `${appUrl}/masjids/${masjid?.masjid_code}/register`;
 
   const qrDataUrl = masjid

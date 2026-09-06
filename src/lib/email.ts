@@ -14,7 +14,7 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
   if (apiKey) {
     const { Resend } = await import("resend");
     const resend = new Resend(apiKey);
-    const from = process.env.RESEND_FROM ?? "noreply@baitujamaat.app";
+    const from = process.env.RESEND_FROM ?? "noreply@development.baitul-jamaat.com";
     const { error } = await resend.emails.send({
       from,
       to: payload.to,

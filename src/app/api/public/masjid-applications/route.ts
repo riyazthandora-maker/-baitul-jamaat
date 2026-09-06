@@ -4,6 +4,7 @@ import { masjidApplicationSchema } from "@/lib/validators/masjid";
 import { sendEmail } from "@/lib/email";
 import { ZodError } from "zod";
 import { createHash } from "crypto";
+import { getAppUrl } from "@/lib/utils";
 
 function getAdminClient() {
   return createClient(
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
 
   // Notify super admin
   const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appUrl = getAppUrl(req.nextUrl.origin);
   const notifyEmail = superAdminEmail ?? process.env.RESEND_FROM ?? null;
 
   if (notifyEmail) {

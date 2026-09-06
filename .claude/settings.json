@@ -1,8 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Cd"
+      "cd"
     ]
   }
- 
 }
