@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Plus, FileText, Ban, Heart } from "lucide-react";
 import VoidButton from "@/components/VoidButton";
@@ -12,8 +13,9 @@ export default async function ReceiptsPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const masjidId = user?.app_metadata?.masjid_id;
+  const adminSupabase = await createAdminClient();
 
-  const [{ data: receipts }, { data: donations }, { data: externalReceipts }] = await Promise.all([
+  const [{ data: receipts }, { data: donations }, { data: rawExternal }] = await Promise.all([
     supabase
       .from("receipts")
       .select("*, members(full_name, member_number)")
@@ -26,9 +28,9 @@ export default async function ReceiptsPage({
       .eq("masjid_id", masjidId)
       .order("created_at", { ascending: false })
       .limit(100),
-    supabase
+    adminSupabase
       .from("revenue_expenses")
-      .select("id, date, created_at, amount, remarks, receipt_number, entity_id, contacts(name, phone)")
+      .select("id, date, created_at, amount, remarks, receipt_number, entity_id")
       .eq("masjid_id", masjidId)
       .eq("type", "revenue")
       .eq("entity_type", "contact")
@@ -37,6 +39,22 @@ export default async function ReceiptsPage({
       .order("created_at", { ascending: false })
       .limit(100),
   ]);
+
+  // Enrich with contact names — revenue_expenses has no FK to contacts
+  const contactIds = [...new Set((rawExternal ?? []).map((r) => r.entity_id))];
+  const { data: contactRows } = contactIds.length
+    ? await adminSupabase
+        .from("contacts")
+        .select("id, name, phone")
+        .in("id", contactIds)
+    : { data: [] };
+  const contactMap = Object.fromEntries(
+    (contactRows ?? []).map((c) => [c.id, { name: c.name, phone: c.phone }])
+  );
+  const externalReceipts = (rawExternal ?? []).map((r) => ({
+    ...r,
+    contact: contactMap[r.entity_id] ?? null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -117,9 +135,7 @@ export default async function ReceiptsPage({
         ) : (
           <div className="bg-white rounded-xl shadow-sm divide-y">
             {externalReceipts.map((r) => {
-              const contact = Array.isArray(r.contacts)
-                ? r.contacts[0] as { name: string; phone: string | null } | undefined
-                : r.contacts as { name: string; phone: string | null } | null;
+              const contact = r.contact;
               const selected = r.receipt_number === selectedReceipt;
               return (
                 <div key={r.id} className={`flex items-center gap-4 px-5 py-4 ${selected ? "bg-green-50 ring-1 ring-inset ring-brand-green" : ""}`}>

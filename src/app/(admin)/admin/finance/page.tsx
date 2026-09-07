@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FinanceClient from "./FinanceClient";
 
@@ -12,5 +13,16 @@ export default async function FinancePage() {
     redirect("/login");
   }
 
-  return <FinanceClient />;
+  const masjidId = user.app_metadata?.masjid_id as string;
+  const adminSupabase = await createAdminClient();
+
+  const { data: contacts } = await adminSupabase
+    .from("contacts")
+    .select("id, name, email, phone")
+    .eq("masjid_id", masjidId)
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+    .limit(500);
+
+  return <FinanceClient initialContacts={contacts ?? []} />;
 }

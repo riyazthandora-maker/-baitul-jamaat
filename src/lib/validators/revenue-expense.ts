@@ -15,7 +15,7 @@ const dateField = z
 
 const baseFields = {
   date: dateField,
-  entity_type: z.enum(["member", "contact"]),
+  entity_type: z.literal("contact"),
   entity_id: z.string().uuid("Invalid entity ID"),
   amount: z.coerce.number().positive("Amount must be greater than 0"),
   remarks: z.string().optional().nullable(),

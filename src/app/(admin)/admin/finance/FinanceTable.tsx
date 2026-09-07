@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
 import {
   TrendingUp,
   TrendingDown,
@@ -9,7 +8,6 @@ import {
   Clock,
   Pencil,
   Mail,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
@@ -17,6 +15,8 @@ import {
   X,
   Search,
   ReceiptText,
+  FileText,
+  CreditCard,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,7 +24,6 @@ import {
 type FilterState = {
   type: "" | "revenue" | "expense";
   status: "" | "received" | "pending" | "paid" | "unpaid";
-  entity_type: "" | "member" | "contact";
   date_from: string;
   date_to: string;
   amount_min: string;
@@ -57,7 +56,6 @@ const PAGE_SIZE = 20;
 const INIT_FILTERS: FilterState = {
   type: "",
   status: "",
-  entity_type: "",
   date_from: "",
   date_to: "",
   amount_min: "",
@@ -237,6 +235,8 @@ function EntryRow({
   const [resendDone, setResendDone] = useState(false);
   const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [settling, setSettling] = useState(false);
+  const [settleError, setSettleError] = useState<string | null>(null);
 
   const docNumber = entry.type === "revenue" ? entry.receipt_number : entry.voucher_number;
   const isRevenue = entry.type === "revenue";
@@ -269,137 +269,201 @@ function EntryRow({
     }
   }
 
-  return (
-    <div className="px-4 py-4 sm:px-5">
-      <div className="flex items-start gap-3">
-        {/* Type icon */}
-        <div
-          className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-            isRevenue ? "bg-green-50" : "bg-red-50"
+  async function handleSettle() {
+    setSettling(true);
+    setSettleError(null);
+    try {
+      const res = await fetch(`/api/admin/revenue-expenses/${entry.id}/settle`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.entry) {
+        setSettleError(data.error ?? "Could not settle expense");
+        return;
+      }
+      onUpdated({ ...entry, is_paid: true, voucher_number: data.entry.voucher_number });
+    } catch {
+      setSettleError("Could not settle expense");
+    } finally {
+      setSettling(false);
+    }
+  }
+
+  const typeIcon = (
+    <div
+      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
+        isRevenue ? "bg-green-50" : "bg-red-50"
+      }`}
+    >
+      {isRevenue ? (
+        <TrendingUp className="w-3.5 h-3.5 text-brand-green" />
+      ) : (
+        <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+      )}
+    </div>
+  );
+
+  const amountCell = (
+    <span
+      className={`font-bold flex-shrink-0 ${
+        isRevenue ? "text-brand-green" : "text-red-600"
+      }`}
+    >
+      {isRevenue ? "+" : "−"}₹{Number(entry.amount).toLocaleString("en-IN")}
+    </span>
+  );
+
+  const actions = (
+    <div className="flex items-center gap-0.5 flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => onEdit(entry)}
+        title="Edit entry"
+        className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/5 transition-colors"
+      >
+        <Pencil className="w-3.5 h-3.5" />
+      </button>
+
+      {docNumber && entry.entity_email && (
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending}
+          title={resendDone ? "Sent!" : "Resend email"}
+          className={`p-1.5 rounded-lg transition-colors ${
+            resendDone
+              ? "text-green-600 bg-green-50"
+              : "text-gray-400 hover:text-brand-green hover:bg-brand-green/5"
           }`}
         >
-          {isRevenue ? (
-            <TrendingUp className="w-4 h-4 text-brand-green" />
+          {resending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
-            <TrendingDown className="w-4 h-4 text-red-500" />
+            <Mail className="w-3.5 h-3.5" />
           )}
-        </div>
+        </button>
+      )}
 
-        {/* Main content */}
+      {/* Revenue: generate receipt button */}
+      {isRevenue && entry.entity_type === "contact" && !entry.receipt_number && (
+        <button
+          type="button"
+          onClick={handleGenerateReceipt}
+          disabled={generatingReceipt}
+          title="Generate receipt"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/5 transition-colors disabled:opacity-50"
+        >
+          {generatingReceipt ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <ReceiptText className="w-3.5 h-3.5" />
+          )}
+        </button>
+      )}
+
+      {/* Expense: settle (mark paid) button */}
+      {!isRevenue && !entry.is_paid && (
+        <button
+          type="button"
+          onClick={handleSettle}
+          disabled={settling}
+          title="Mark as paid"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/5 transition-colors disabled:opacity-50"
+        >
+          {settling ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <CreditCard className="w-3.5 h-3.5" />
+          )}
+        </button>
+      )}
+
+      {/* Expense: download voucher PDF */}
+      {!isRevenue && entry.voucher_number && (
+        <a
+          href={`/api/admin/revenue-expenses/${entry.id}/voucher`}
+          target="_blank"
+          rel="noreferrer"
+          title="Download voucher PDF"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/5 transition-colors"
+        >
+          <FileText className="w-3.5 h-3.5" />
+        </a>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="px-4 sm:px-5">
+      {/* ── Mobile card layout ── */}
+      <div className="md:hidden py-4 flex items-start gap-3">
+        <div className="mt-0.5">{typeIcon}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            {/* Left: entity + date */}
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-medium text-sm text-gray-900 truncate">
-                  {entry.entity_name}
-                </span>
-                {entry.entity_member_number && (
-                  <span className="text-xs text-gray-400 font-mono flex-shrink-0">
-                    {entry.entity_member_number}
-                  </span>
-                )}
-              </div>
+              <p className="font-medium text-sm text-gray-900 truncate">{entry.entity_name}</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {new Date(entry.date).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
+                  day: "numeric", month: "short", year: "numeric",
                 })}
-                {entry.remarks && (
-                  <span className="ml-1.5 text-gray-400">· {entry.remarks}</span>
-                )}
+                {entry.remarks && <span className="ml-1.5">· {entry.remarks}</span>}
               </p>
             </div>
-
-            {/* Right: amount */}
-            <span
-              className={`text-base font-bold flex-shrink-0 ${
-                isRevenue ? "text-brand-green" : "text-red-600"
-              }`}
-            >
-              {isRevenue ? "+" : "−"}₹{Number(entry.amount).toLocaleString("en-IN")}
-            </span>
+            {amountCell}
           </div>
-
-          {/* Second row: status + doc number + actions */}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <StatusBadge entry={entry} />
-
             {docNumber && (
               <span className="inline-flex items-center gap-1 text-xs text-gray-500 font-mono bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
-                <ReceiptText className="w-3 h-3" />
-                {docNumber}
+                <ReceiptText className="w-3 h-3" />{docNumber}
               </span>
             )}
-
-            {/* Actions */}
-            <div className="ml-auto flex items-center gap-1">
-              {/* Edit */}
-              <button
-                type="button"
-                onClick={() => onEdit(entry)}
-                title="Edit entry"
-                className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/5 transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-
-              {/* Resend email */}
-              {docNumber && entry.entity_email && (
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={resending}
-                  title={resendDone ? "Sent!" : "Resend email"}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    resendDone
-                      ? "text-green-600 bg-green-50"
-                      : "text-gray-400 hover:text-brand-green hover:bg-brand-green/5"
-                  }`}
-                >
-                  {resending ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Mail className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              )}
-
-              {/* Additional receipt option for pending external revenue */}
-              {isRevenue && entry.entity_type === "contact" && !entry.receipt_number && (
-                <button
-                  type="button"
-                  onClick={handleGenerateReceipt}
-                  disabled={generatingReceipt}
-                  title="Generate receipt without marking as received"
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/5 transition-colors disabled:opacity-50"
-                >
-                  {generatingReceipt ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <ReceiptText className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              )}
-
-              {/* Member ledger link */}
-              {entry.entity_type === "member" && (
-                <Link
-                  href={`/admin/members/${entry.entity_id}`}
-                  title="View member ledger"
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/5 transition-colors"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </Link>
-              )}
-            </div>
+            <div className="ml-auto">{actions}</div>
           </div>
-          {receiptError && (
-            <p className="mt-1 text-xs text-red-600">{receiptError}</p>
-          )}
+          {receiptError && <p className="mt-1 text-xs text-red-600">{receiptError}</p>}
+          {settleError && <p className="mt-1 text-xs text-red-600">{settleError}</p>}
         </div>
       </div>
+
+      {/* ── Desktop single-line layout ── */}
+      <div className="hidden md:flex items-center gap-3 py-3">
+        {typeIcon}
+
+        {/* Contact name + date */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">{entry.entity_name}</p>
+          <p className="text-xs text-gray-400">
+            {new Date(entry.date).toLocaleDateString("en-IN", {
+              day: "numeric", month: "short", year: "numeric",
+            })}
+            {entry.remarks && <span className="ml-1.5">· {entry.remarks}</span>}
+          </p>
+        </div>
+
+        {/* Status */}
+        <div className="w-24 flex-shrink-0">
+          <StatusBadge entry={entry} />
+        </div>
+
+        {/* Doc number */}
+        <div className="w-36 flex-shrink-0">
+          {docNumber ? (
+            <span className="inline-flex items-center gap-1 text-xs text-gray-500 font-mono bg-gray-50 px-2 py-0.5 rounded border border-gray-100 truncate max-w-full">
+              <ReceiptText className="w-3 h-3 flex-shrink-0" />{docNumber}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-300">—</span>
+          )}
+        </div>
+
+        {/* Amount */}
+        <div className="w-28 flex-shrink-0 text-right text-sm">{amountCell}</div>
+
+        {/* Actions */}
+        {actions}
+      </div>
+      {receiptError && <p className="pb-1 text-xs text-red-600 md:pl-10">{receiptError}</p>}
+      {settleError && <p className="pb-1 text-xs text-red-600 md:pl-10">{settleError}</p>}
     </div>
   );
 }
@@ -542,23 +606,10 @@ function FilterBar({
             />
           </div>
 
-          {/* Entity type */}
-          <select
-            value={filters.entity_type}
-            onChange={(e) =>
-              onChange({ entity_type: e.target.value as FilterState["entity_type"], page: 1 })
-            }
-            className="border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-green bg-white"
-          >
-            <option value="">All entities</option>
-            <option value="member">Members only</option>
-            <option value="contact">Contacts only</option>
-          </select>
-
           {/* Entity search */}
           <input
             type="search"
-            placeholder="Member or contact name / ID"
+            placeholder="Contact name"
             value={filters.entity_search}
             onChange={(e) => onChange({ entity_search: e.target.value, page: 1 })}
             className="min-w-48 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-green"
@@ -580,10 +631,13 @@ function FilterBar({
 
 // ─── Main Table Component ─────────────────────────────────────────────────────
 
+type Totals = { revenue: number; expense: number };
+
 export default function FinanceTable({ refreshKey }: { refreshKey: number }) {
   const [filters, setFilters] = useState<FilterState>(INIT_FILTERS);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [total, setTotal] = useState(0);
+  const [totals, setTotals] = useState<Totals>({ revenue: 0, expense: 0 });
   const [loading, setLoading] = useState(true);
   const [editTarget, setEditTarget] = useState<Entry | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -593,7 +647,6 @@ export default function FinanceTable({ refreshKey }: { refreshKey: number }) {
     const params = new URLSearchParams();
     if (f.type)        params.set("type", f.type);
     if (f.status)      params.set("status", f.status);
-    if (f.entity_type) params.set("entity_type", f.entity_type);
     if (f.date_from)   params.set("date_from", f.date_from);
     if (f.date_to)     params.set("date_to", f.date_to);
     if (f.amount_min)  params.set("amount_min", f.amount_min);
@@ -608,6 +661,10 @@ export default function FinanceTable({ refreshKey }: { refreshKey: number }) {
       const data = await res.json();
       setEntries(data.entries ?? []);
       setTotal(data.total ?? 0);
+      setTotals({
+        revenue: data.revenue_total ?? 0,
+        expense: data.expense_total ?? 0,
+      });
     }
     setLoading(false);
   }, []);
@@ -692,6 +749,41 @@ export default function FinanceTable({ refreshKey }: { refreshKey: number }) {
           </div>
         )}
       </div>
+
+      {/* Totals summary */}
+      {!loading && total > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm px-5 py-4">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            Summary{filters.type === "revenue" ? " — Revenue" : filters.type === "expense" ? " — Expense" : ""}
+          </h3>
+          <div className="flex flex-wrap gap-4">
+            {filters.type !== "expense" && (
+              <div className="flex-1 min-w-32">
+                <p className="text-xs text-gray-400 mb-0.5">Total Revenue</p>
+                <p className="text-lg font-bold text-brand-green">
+                  ₹{totals.revenue.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            )}
+            {filters.type !== "revenue" && (
+              <div className="flex-1 min-w-32">
+                <p className="text-xs text-gray-400 mb-0.5">Total Expense</p>
+                <p className="text-lg font-bold text-red-600">
+                  ₹{totals.expense.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            )}
+            {filters.type === "" && (
+              <div className="flex-1 min-w-32">
+                <p className="text-xs text-gray-400 mb-0.5">Net</p>
+                <p className={`text-lg font-bold ${totals.revenue - totals.expense >= 0 ? "text-brand-green" : "text-red-600"}`}>
+                  {totals.revenue - totals.expense >= 0 ? "+" : "−"}₹{Math.abs(totals.revenue - totals.expense).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
