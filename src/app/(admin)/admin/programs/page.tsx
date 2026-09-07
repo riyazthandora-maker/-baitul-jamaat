@@ -1,28 +1,49 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Plus, ToggleLeft, ToggleRight, Users } from "lucide-react";
+import RevenueActions from "./RevenueActions";
 
 export default async function ProgramsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const masjidId = user?.app_metadata?.masjid_id;
 
-  const { data: programs } = await supabase
-    .from("programs")
-    .select("*, enrollments(count)")
-    .eq("masjid_id", masjidId)
-    .order("created_at", { ascending: false });
+  const [{ data: programs }, { data: members }, { data: revenueItems }] = await Promise.all([
+    supabase
+      .from("programs")
+      .select("*, enrollments(count)")
+      .eq("masjid_id", masjidId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("members")
+      .select("id, full_name, member_number")
+      .eq("masjid_id", masjidId)
+      .in("status", ["active", "inactive"])
+      .order("full_name", { ascending: true })
+      .limit(1000),
+    supabase
+      .from("revenue_items")
+      .select("*")
+      .eq("masjid_id", masjidId)
+      .order("code", { ascending: true }),
+  ]);
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
         <h1 className="text-2xl font-bold text-brand-green">Revenue Programs</h1>
-        <Link
-          href="/admin/programs/new"
-          className="flex items-center gap-2 bg-brand-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
-        >
-          <Plus className="w-4 h-4" /> New Program
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <RevenueActions
+            initialItems={revenueItems ?? []}
+            members={members ?? []}
+          />
+          <Link
+            href="/admin/programs/new"
+            className="flex items-center gap-2 bg-brand-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
+          >
+            <Plus className="w-4 h-4" /> New Program
+          </Link>
+        </div>
       </div>
 
       {!programs?.length ? (

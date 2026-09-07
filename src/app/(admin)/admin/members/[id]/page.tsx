@@ -51,7 +51,7 @@ export default async function MemberReviewPage({
   // Ledger entries for this member
   const { data: ledgerEntries } = await supabase
     .from("ledger")
-    .select("*, programs(name)")
+    .select("*, programs(name), revenue_items(name, code)")
     .eq("member_id", id)
     .order("created_at", { ascending: false });
 
@@ -313,6 +313,7 @@ export default async function MemberReviewPage({
             entries={(ledgerEntries ?? []).map((e) => ({
               ...e,
               programs: (e.programs as { name: string } | null),
+              revenue_items: (e.revenue_items as { name: string; code: string } | null),
             }))}
           />
         </div>
