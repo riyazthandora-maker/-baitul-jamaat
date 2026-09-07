@@ -29,6 +29,8 @@ export async function generateReceiptPdf(receipt: {
   amount: number;
   notes: string | null;
   title?: string;
+  payeeLabel?: string;
+  amountLabel?: string;
   payee: { name: string; identifier: string | null; phone: string | null };
   masjid: { name: string; address: string; phone: string };
 }): Promise<Uint8Array> {
@@ -76,7 +78,7 @@ export async function generateReceiptPdf(receipt: {
   // Two-column info
   const col2 = width / 2 + 20;
 
-  page.drawText("RECEIVED FROM", { x: 40, y, size: 8, font: bold, color: GRAY });
+  page.drawText(receipt.payeeLabel ?? "RECEIVED FROM", { x: 40, y, size: 8, font: bold, color: GRAY });
   page.drawText("MASJID", { x: col2, y, size: 8, font: bold, color: GRAY });
   y -= 14;
   page.drawText(receipt.payee.name, { x: 40, y, size: 11, font: bold, color: BLACK });
@@ -98,7 +100,7 @@ export async function generateReceiptPdf(receipt: {
   // Amount row
   y -= 28;
   page.drawRectangle({ x: 38, y: y - 12, width: width - 76, height: 40, color: rgb(0.97, 0.97, 0.97) });
-  page.drawText("AMOUNT RECEIVED", { x: 50, y: y + 8, size: 9, font: bold, color: GRAY });
+  page.drawText(receipt.amountLabel ?? "AMOUNT RECEIVED", { x: 50, y: y + 8, size: 9, font: bold, color: GRAY });
   page.drawText(fmt(receipt.amount), {
     x: width - 180,
     y: y + 8,

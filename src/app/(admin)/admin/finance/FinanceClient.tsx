@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   Loader2,
   CheckCircle2,
   TrendingUp,
   TrendingDown,
-  Users,
-  Building2,
   ReceiptText,
   Plus,
 } from "lucide-react";
@@ -16,13 +14,6 @@ import FinanceTable from "./FinanceTable";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Tab = "revenue" | "expense";
-
-type Member = {
-  id: string;
-  full_name: string;
-  member_number: string | null;
-  phone: string;
-};
 
 type Contact = {
   id: string;
@@ -33,7 +24,6 @@ type Contact = {
 
 type RevenueForm = {
   date: string;
-  entity_type: "member" | "contact";
   entity_id: string;
   amount: string;
   remarks: string;
@@ -42,7 +32,6 @@ type RevenueForm = {
 
 type ExpenseForm = {
   date: string;
-  entity_type: "member" | "contact";
   entity_id: string;
   amount: string;
   remarks: string;
@@ -80,7 +69,6 @@ const { today, min: dateMin, max: dateMax } = getWindowDates();
 
 const INIT_REVENUE: RevenueForm = {
   date: today,
-  entity_type: "member",
   entity_id: "",
   amount: "",
   remarks: "",
@@ -89,7 +77,6 @@ const INIT_REVENUE: RevenueForm = {
 
 const INIT_EXPENSE: ExpenseForm = {
   date: today,
-  entity_type: "member",
   entity_id: "",
   amount: "",
   remarks: "",
@@ -129,55 +116,14 @@ function TabButton({
   );
 }
 
-function EntityToggle({
-  value,
-  onChange,
-}: {
-  value: "member" | "contact";
-  onChange: (v: "member" | "contact") => void;
-}) {
-  return (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        onClick={() => onChange("member")}
-        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-colors ${
-          value === "member"
-            ? "border-brand-green bg-brand-green/5 text-brand-green"
-            : "border-gray-200 text-gray-500 hover:border-gray-300"
-        }`}
-      >
-        <Users className="w-4 h-4" />
-        Masjid Member
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("contact")}
-        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-colors ${
-          value === "contact"
-            ? "border-brand-gold bg-brand-gold/5 text-amber-700"
-            : "border-gray-200 text-gray-500 hover:border-gray-300"
-        }`}
-      >
-        <Building2 className="w-4 h-4" />
-        External Contact
-      </button>
-    </div>
-  );
-}
-
 function EntitySelect({
-  entityType,
   entityId,
-  members,
   contacts,
   loadingEntities,
   onChange,
   onOpenCreateContact,
 }: {
-  entityType: "member" | "contact";
   entityId: string;
-  members: Member[];
   contacts: Contact[];
   loadingEntities: boolean;
   onChange: (id: string) => void;
@@ -189,25 +135,6 @@ function EntitySelect({
         <Loader2 className="w-4 h-4 animate-spin" />
         Loading…
       </div>
-    );
-  }
-
-  if (entityType === "member") {
-    return (
-      <select
-        required
-        value={entityId}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green bg-white"
-      >
-        <option value="">— Select member —</option>
-        {members.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.full_name}
-            {m.member_number ? ` (${m.member_number})` : ` · ${m.phone}`}
-          </option>
-        ))}
-      </select>
     );
   }
 
@@ -403,13 +330,11 @@ function CreateContactModal({
 // ─── Revenue Form ─────────────────────────────────────────────────────────────
 
 function RevenueForm({
-  members,
   contacts,
   loadingEntities,
   onContactCreated,
   onSuccess,
 }: {
-  members: Member[];
   contacts: Contact[];
   loadingEntities: boolean;
   onContactCreated: (c: Contact) => void;
@@ -422,12 +347,7 @@ function RevenueForm({
   const [contactModalOpen, setContactModalOpen] = useState(false);
 
   function setField<K extends keyof RevenueForm>(key: K, value: RevenueForm[K]) {
-    setForm((prev) => {
-      const next = { ...prev, [key]: value };
-      // Reset entity when toggling entity_type
-      if (key === "entity_type") next.entity_id = "";
-      return next;
-    });
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function handleReset() {
@@ -439,7 +359,7 @@ function RevenueForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.entity_id) {
-      setError("Please select a member or contact.");
+      setError("Please select a contact.");
       return;
     }
     setSaving(true);
@@ -448,7 +368,7 @@ function RevenueForm({
     const body = {
       type: "revenue",
       date: form.date,
-      entity_type: form.entity_type,
+      entity_type: "contact",
       entity_id: form.entity_id,
       amount: parseFloat(form.amount),
       remarks: form.remarks || null,
@@ -510,26 +430,13 @@ function RevenueForm({
           />
         </div>
 
-        {/* Entity type toggle */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Received from
-          </label>
-          <EntityToggle
-            value={form.entity_type}
-            onChange={(v) => setField("entity_type", v)}
-          />
-        </div>
-
         {/* Entity select */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {form.entity_type === "member" ? "Member" : "Contact"} *
+            Received from (External Contact) *
           </label>
           <EntitySelect
-            entityType={form.entity_type}
             entityId={form.entity_id}
-            members={members}
             contacts={contacts}
             loadingEntities={loadingEntities}
             onChange={(id) => setField("entity_id", id)}
@@ -624,13 +531,11 @@ function RevenueForm({
 // ─── Expense Form ─────────────────────────────────────────────────────────────
 
 function ExpenseForm({
-  members,
   contacts,
   loadingEntities,
   onContactCreated,
   onSuccess,
 }: {
-  members: Member[];
   contacts: Contact[];
   loadingEntities: boolean;
   onContactCreated: (c: Contact) => void;
@@ -643,11 +548,7 @@ function ExpenseForm({
   const [contactModalOpen, setContactModalOpen] = useState(false);
 
   function setField<K extends keyof ExpenseForm>(key: K, value: ExpenseForm[K]) {
-    setForm((prev) => {
-      const next = { ...prev, [key]: value };
-      if (key === "entity_type") next.entity_id = "";
-      return next;
-    });
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function handleReset() {
@@ -659,7 +560,7 @@ function ExpenseForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.entity_id) {
-      setError("Please select a member or contact.");
+      setError("Please select a contact.");
       return;
     }
     setSaving(true);
@@ -668,7 +569,7 @@ function ExpenseForm({
     const body = {
       type: "expense",
       date: form.date,
-      entity_type: form.entity_type,
+      entity_type: "contact",
       entity_id: form.entity_id,
       amount: parseFloat(form.amount),
       remarks: form.remarks || null,
@@ -730,26 +631,13 @@ function ExpenseForm({
           />
         </div>
 
-        {/* Entity type toggle */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Paid to
-          </label>
-          <EntityToggle
-            value={form.entity_type}
-            onChange={(v) => setField("entity_type", v)}
-          />
-        </div>
-
         {/* Entity select */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {form.entity_type === "member" ? "Member" : "Contact"} *
+            Paid to (External Contact) *
           </label>
           <EntitySelect
-            entityType={form.entity_type}
             entityId={form.entity_id}
-            members={members}
             contacts={contacts}
             loadingEntities={loadingEntities}
             onChange={(id) => setField("entity_id", id)}
@@ -843,31 +731,23 @@ function ExpenseForm({
 
 // ─── Root client component ────────────────────────────────────────────────────
 
-export default function FinanceClient() {
+export default function FinanceClient({ initialContacts }: { initialContacts: Contact[] }) {
   const [activeTab, setActiveTab] = useState<Tab>("revenue");
-  const [members, setMembers] = useState<Member[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loadingEntities, setLoadingEntities] = useState(true);
+  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+  const [loadingEntities] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const loadEntities = useCallback(async () => {
-    setLoadingEntities(true);
-    const [mRes, cRes] = await Promise.all([
-      fetch("/api/admin/members?status=active"),
-      fetch("/api/admin/contacts"),
-    ]);
-    const [mData, cData] = await Promise.all([mRes.json(), cRes.json()]);
-    setMembers(mData.members ?? []);
-    setContacts(cData.contacts ?? []);
-    setLoadingEntities(false);
+  // Contacts are preloaded server-side; refetch only after a new contact is created
+  const reloadContacts = useCallback(async () => {
+    const res = await fetch("/api/admin/contacts");
+    const data = await res.json();
+    setContacts(data.contacts ?? []);
   }, []);
-
-  useEffect(() => {
-    loadEntities();
-  }, [loadEntities]);
 
   function handleContactCreated(contact: Contact) {
     setContacts((prev) => [...prev, contact].sort((a, b) => a.name.localeCompare(b.name)));
+    // Reload to pick up any server-side changes
+    void reloadContacts();
   }
 
   function handleSuccess() {
@@ -908,7 +788,6 @@ export default function FinanceClient() {
         <div className="bg-white rounded-2xl shadow-sm p-6">
           {activeTab === "revenue" ? (
             <RevenueForm
-              members={members}
               contacts={contacts}
               loadingEntities={loadingEntities}
               onContactCreated={handleContactCreated}
@@ -916,7 +795,6 @@ export default function FinanceClient() {
             />
           ) : (
             <ExpenseForm
-              members={members}
               contacts={contacts}
               loadingEntities={loadingEntities}
               onContactCreated={handleContactCreated}

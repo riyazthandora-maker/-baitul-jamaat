@@ -49,27 +49,17 @@ export async function GET(request: NextRequest) {
 
   let entityFilter: string | null = null;
   if (entitySearch) {
-    const [memberMatches, contactMatches] = await Promise.all([
-      adminSupabase
-        .from("members")
-        .select("id")
-        .eq("masjid_id", masjidId)
-        .or(`full_name.ilike.%${entitySearch}%,member_number.ilike.%${entitySearch}%`)
-        .limit(100),
-      adminSupabase
-        .from("contacts")
-        .select("id")
-        .eq("masjid_id", masjidId)
-        .eq("is_active", true)
-        .ilike("name", `%${entitySearch}%`)
-        .limit(100),
-    ]);
-    const memberIds = (memberMatches.data ?? []).map((row) => row.id);
+    const contactMatches = await adminSupabase
+      .from("contacts")
+      .select("id")
+      .eq("masjid_id", masjidId)
+      .eq("is_active", true)
+      .ilike("name", `%${entitySearch}%`)
+      .limit(100);
     const contactIds = (contactMatches.data ?? []).map((row) => row.id);
-    const clauses: string[] = [];
-    if (memberIds.length) clauses.push(`and(entity_type.eq.member,entity_id.in.(${memberIds.join(",")}))`);
-    if (contactIds.length) clauses.push(`and(entity_type.eq.contact,entity_id.in.(${contactIds.join(",")}))`);
-    entityFilter = clauses.length ? clauses.join(",") : "__no_entity_match__";
+    entityFilter = contactIds.length
+      ? `and(entity_type.eq.contact,entity_id.in.(${contactIds.join(",")}))`
+      : "__no_entity_match__";
   }
 
   let query = adminSupabase
@@ -113,30 +103,68 @@ export async function GET(request: NextRequest) {
   }
   if (entityFilter) query = query.or(entityFilter);
 
-  const { data: entries, count, error } = await query;
+  // Build a parallel totals query with same filters but no range
+  let totalsQuery = adminSupabase
+    .from("revenue_expenses")
+    .select("type, amount")
+    .eq("masjid_id", masjidId)
+    .is("deleted_at", null)
+    .limit(5000);
+
+  if (type)       totalsQuery = totalsQuery.eq("type", type);
+  if (entityType) totalsQuery = totalsQuery.eq("entity_type", entityType);
+  if (entityId)   totalsQuery = totalsQuery.eq("entity_id", entityId);
+  if (dateFrom)   totalsQuery = totalsQuery.gte("date", dateFrom);
+  if (dateTo)     totalsQuery = totalsQuery.lte("date", dateTo);
+  if (amountMin)  totalsQuery = totalsQuery.gte("amount", parseFloat(amountMin));
+  if (amountMax)  totalsQuery = totalsQuery.lte("amount", parseFloat(amountMax));
+
+  if (status === "received") {
+    totalsQuery = totalsQuery.eq("is_received", true);
+    if (!type) totalsQuery = totalsQuery.eq("type", "revenue");
+  } else if (status === "pending") {
+    totalsQuery = totalsQuery.eq("is_received", false);
+    if (!type) totalsQuery = totalsQuery.eq("type", "revenue");
+  } else if (status === "paid") {
+    totalsQuery = totalsQuery.eq("is_paid", true);
+    if (!type) totalsQuery = totalsQuery.eq("type", "expense");
+  } else if (status === "unpaid") {
+    totalsQuery = totalsQuery.eq("is_paid", false);
+    if (!type) totalsQuery = totalsQuery.eq("type", "expense");
+  }
+
+  if (search) {
+    totalsQuery = totalsQuery.or(
+      `receipt_number.ilike.%${search}%,voucher_number.ilike.%${search}%`
+    );
+  }
+  if (entityFilter && entityFilter !== "__no_entity_match__") {
+    totalsQuery = totalsQuery.or(entityFilter);
+  }
+
+  const [{ data: entries, count, error }, { data: totalsRows }] = await Promise.all([
+    query,
+    entityFilter === "__no_entity_match__" ? Promise.resolve({ data: [] }) : totalsQuery,
+  ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Enrich entries with entity names via batched lookups
-  const memberIds  = (entries ?? []).filter(e => e.entity_type === "member").map(e => e.entity_id);
-  const contactIds = (entries ?? []).filter(e => e.entity_type === "contact").map(e => e.entity_id);
+  const revenueTotal = (totalsRows ?? [])
+    .filter((r: { type: string; amount: number }) => r.type === "revenue")
+    .reduce((s: number, r: { type: string; amount: number }) => s + Number(r.amount), 0);
+  const expenseTotal = (totalsRows ?? [])
+    .filter((r: { type: string; amount: number }) => r.type === "expense")
+    .reduce((s: number, r: { type: string; amount: number }) => s + Number(r.amount), 0);
 
-  const [membersRes, contactsRes] = await Promise.all([
-    memberIds.length
-      ? adminSupabase.from("members").select("id, full_name, member_number, email").in("id", memberIds)
-      : { data: [] },
-    contactIds.length
-      ? adminSupabase.from("contacts").select("id, name, email").in("id", contactIds)
-      : { data: [] },
-  ]);
+  // Enrich entries with contact names
+  const contactIds = (entries ?? []).map(e => e.entity_id);
 
-  const memberMap  = Object.fromEntries((membersRes.data ?? []).map(m => [m.id, m]));
+  const contactsRes = contactIds.length
+    ? await adminSupabase.from("contacts").select("id, name, email").in("id", contactIds)
+    : { data: [] };
+
   const contactMap = Object.fromEntries((contactsRes.data ?? []).map(c => [c.id, c]));
 
   const enriched = (entries ?? []).map(e => {
-    if (e.entity_type === "member") {
-      const m = memberMap[e.entity_id];
-      return { ...e, entity_name: m?.full_name ?? "Unknown", entity_member_number: m?.member_number ?? null, entity_email: m?.email ?? null };
-    }
     const c = contactMap[e.entity_id];
     return { ...e, entity_name: c?.name ?? "Unknown", entity_member_number: null, entity_email: c?.email ?? null };
   });
@@ -146,6 +174,8 @@ export async function GET(request: NextRequest) {
     total: count ?? 0,
     page,
     page_size: pageSize,
+    revenue_total: revenueTotal,
+    expense_total: expenseTotal,
   });
 }
 
@@ -227,25 +257,15 @@ export async function sendReNotification(
 
   // Resolve entity email and name
   let email: string | null = null;
-  let name = "Valued Member";
+  let name = "Valued Contact";
 
-  if (entityType === "member") {
-    const { data } = await adminSupabase
-      .from("members")
-      .select("full_name, email")
-      .eq("id", entityId)
-      .maybeSingle();
-    email = data?.email ?? null;
-    name = data?.full_name ?? name;
-  } else {
-    const { data } = await adminSupabase
-      .from("contacts")
-      .select("name, email")
-      .eq("id", entityId)
-      .maybeSingle();
-    email = data?.email ?? null;
-    name = data?.name ?? name;
-  }
+  const { data } = await adminSupabase
+    .from("contacts")
+    .select("name, email")
+    .eq("id", entityId)
+    .maybeSingle();
+  email = data?.email ?? null;
+  name = data?.name ?? name;
 
   if (!email) return;
 
