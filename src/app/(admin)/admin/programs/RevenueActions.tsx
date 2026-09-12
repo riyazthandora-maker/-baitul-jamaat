@@ -549,7 +549,7 @@ export default function RevenueActions({
         onClick={() => setShowRecord(true)}
         className="flex items-center gap-2 border border-brand-green text-brand-green px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green/5 transition-colors"
       >
-        <IndianRupee className="w-4 h-4" /> Record Fee
+        <IndianRupee className="w-4 h-4" /> Income
       </button>
 
       {showRecord && (

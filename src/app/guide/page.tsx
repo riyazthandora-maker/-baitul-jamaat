@@ -49,15 +49,15 @@ const adminSteps: Step[] = [
   },
   {
     icon: <BookOpen className="w-6 h-6" />,
-    title: "പ്രോഗ്രാമുകൾ ഉണ്ടാക്കൽ",
+    title: "റിവന്യൂ ഉണ്ടാക്കൽ",
     summary: "ചാർജ് ചെയ്യുന്ന പദ്ധതികൾ സൃഷ്ടിക്കുക",
     steps: [
-      "Programs → 'New Program' ക്ലിക്ക് ചെയ്യുക.",
-      "പ്രോഗ്രാം പേര്, തരം (Monthly/Yearly/One-time), തുക നൽകുക.",
+      "Revenue → 'New Revenue' ക്ലിക്ക് ചെയ്യുക.",
+      "റിവന്യൂ പേര്, തരം (Monthly/Yearly/One-time), തുക നൽകുക.",
       "Save ചെയ്ത ശേഷം 'Enroll Members' ക്ലിക്ക് ചെയ്ത് അംഗങ്ങളെ ചേർക്കുക.",
       "Monthly/Yearly ആണെങ്കിൽ ബില്ലിംഗ് ഓട്ടോമാറ്റിക്കലി നടക്കും (ദൈനംദിന ക്രോൺ ജോബ്).",
     ],
-    tip: "ഒരു അംഗം ഒന്നിലധികം Programs-ൽ ഉൾപ്പെടാം.",
+    tip: "ഒരു അംഗം ഒന്നിലധികം Revenue-ൽ ഉൾപ്പെടാം.",
   },
   {
     icon: <CreditCard className="w-6 h-6" />,

@@ -52,16 +52,16 @@ export default function NewProgramPage() {
         <Link href="/admin/programs" className="text-gray-400 hover:text-gray-600">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-brand-green">New Program</h1>
+        <h1 className="text-2xl font-bold text-brand-green">New Revenue</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Program Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Revenue Name *</label>
           <input
             required
             type="text"
-            placeholder="e.g. Monthly Membership Fee"
+            placeholder="e.g. Monthly Membership Revenue"
             value={form.name}
             onChange={(e) => set("name", e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
@@ -136,7 +136,7 @@ export default function NewProgramPage() {
           disabled={saving}
           className="w-full bg-brand-green text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
         >
-          {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : "Create Program"}
+          {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : "Create Revenue"}
         </button>
       </form>
     </div>

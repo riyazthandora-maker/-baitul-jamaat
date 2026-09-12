@@ -108,8 +108,8 @@ export default async function AdminDashboard() {
         >
           <TrendingUp className="w-8 h-8 text-brand-green" />
           <div>
-            <p className="font-semibold text-gray-800">Programs</p>
-            <p className="text-xs text-gray-400">Manage billing programs</p>
+            <p className="font-semibold text-gray-800">Revenue</p>
+            <p className="text-xs text-gray-400">Manage member revenue</p>
           </div>
         </Link>
         <Link

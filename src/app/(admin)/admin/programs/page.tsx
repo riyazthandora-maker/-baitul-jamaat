@@ -31,7 +31,7 @@ export default async function ProgramsPage() {
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-        <h1 className="text-2xl font-bold text-brand-green">Revenue Programs</h1>
+        <h1 className="text-2xl font-bold text-brand-green">Member's Revenue</h1>
         <div className="flex flex-wrap gap-2">
           <RevenueActions
             initialItems={revenueItems ?? []}
@@ -41,15 +41,15 @@ export default async function ProgramsPage() {
             href="/admin/programs/new"
             className="flex items-center gap-2 bg-brand-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-green-dark transition-colors"
           >
-            <Plus className="w-4 h-4" /> New Program
+            <Plus className="w-4 h-4" /> New Revenue
           </Link>
         </div>
       </div>
 
       {!programs?.length ? (
         <div className="bg-white rounded-xl shadow-sm p-10 text-center text-gray-400">
-          <p className="text-lg mb-2">No programs yet</p>
-          <p className="text-sm">Create a program to start billing members.</p>
+          <p className="text-lg mb-2">No member revenue yet</p>
+          <p className="text-sm">Create a revenue item to start billing members.</p>
         </div>
       ) : (
         <div className="space-y-3">

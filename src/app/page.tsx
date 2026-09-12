@@ -46,7 +46,7 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-3 gap-5 w-full mb-12">
             {[
               { icon: Users, label: "Member Register", desc: "Register, approve, and manage masjid members with ease" },
-              { icon: TrendingUp, label: "Revenue Programs", desc: "Set up recurring donation programs with automatic billing" },
+              { icon: TrendingUp, label: "Member's Revenue", desc: "Set up recurring member revenue with automatic billing" },
               { icon: FileText, label: "Receipts & Reports", desc: "Generate PDF receipts and monthly statements instantly" },
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-left border border-white/15">
