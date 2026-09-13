@@ -352,6 +352,8 @@ export default function LoginPage() {
           <div className="text-center pt-1">
             <a
               href="/guide"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-brand-green hover:underline"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>

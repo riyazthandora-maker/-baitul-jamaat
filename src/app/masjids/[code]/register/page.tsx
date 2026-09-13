@@ -11,18 +11,16 @@ import {
   User,
   Phone,
   BookOpen,
-  CreditCard,
   Info,
+  Sparkles,
 } from "lucide-react";
-import { normalizeIdType, QUALIFICATION_OPTIONS } from "@/lib/member-types";
+import { QUALIFICATION_OPTIONS } from "@/lib/member-types";
 
 type OcrResult = {
   name: string | null;
   dob: string | null;
   gender: string | null;
   address: string | null;
-  id_type: string | null;
-  id_last4: string | null;
 } | null;
 
 export default function RegisterPage() {
@@ -56,8 +54,6 @@ export default function RegisterPage() {
     dob: "",
     gender: "",
     address: "",
-    id_type: "",
-    id_last4: "",
     qualification: "",
     job: "",
   });
@@ -92,8 +88,6 @@ export default function RegisterPage() {
       dob: "",
       gender: "",
       address: "",
-      id_type: "",
-      id_last4: "",
       qualification: "",
       job: "",
     });
@@ -125,8 +119,6 @@ export default function RegisterPage() {
             dob: ocr?.dob ?? prev.dob,
             gender: ocr?.gender ?? prev.gender,
             address: ocr?.address ?? prev.address,
-            id_type: ocr?.id_type ? normalizeIdType(ocr.id_type) : prev.id_type,
-            id_last4: ocr?.id_last4 ?? prev.id_last4,
           }));
           setOcrDone(true);
           setTimeout(() => {
@@ -172,18 +164,13 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!idFrontFile) {
-      setError("Please upload the front side of your ID document.");
-      return;
-    }
     setError(null);
     setSubmitting(true);
 
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      fd.append("id_doc_front", idFrontFile);
-      if (idBackFile) fd.append("id_doc_back", idBackFile);
+      // Document is used only for OCR (already done client-side); not sent to server
       if (photoFile) fd.append("photo", photoFile);
 
       const res = await fetch(`/api/masjids/${code}/register`, {
@@ -276,16 +263,25 @@ export default function RegisterPage() {
           </div>
         </section>
 
-        {/* ID Document — two slots */}
+        {/* ID Document — optional, used only for auto-fill */}
         <section className="bg-white rounded-xl shadow-sm p-5 space-y-4">
           <h2 className="font-semibold text-brand-green flex items-center gap-2 text-lg">
-            <CreditCard className="w-5 h-5" /> Identity Document{" "}
-            <span className="text-red-500">*</span>
+            <Sparkles className="w-5 h-5" /> Auto-fill from ID Document{" "}
+            <span className="text-sm font-normal text-gray-400">(optional)</span>
           </h2>
-          <p className="text-sm text-gray-500">
-            Upload Aadhaar, Passport, or Voter ID (JPG, PNG, PDF · max 5 MB each).
-            Adding the back side improves address extraction.
-          </p>
+
+          {/* Informational banner */}
+          <div className="flex items-start gap-2.5 bg-brand-green/5 border border-brand-green/20 rounded-lg px-3 py-3 text-sm text-gray-600">
+            <Info className="w-4 h-4 text-brand-green flex-shrink-0 mt-0.5" />
+            <p>
+              Upload your Aadhaar, Passport, or Voter ID and we will
+              automatically fill in your name, date of birth, and address — so
+              you don&apos;t have to type them.{" "}
+              <span className="font-medium text-gray-700">
+                The document is used only for reading and is never saved.
+              </span>
+            </p>
+          </div>
 
           <input ref={idFrontRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" className="hidden" onChange={handleFrontChange} />
           <input ref={idBackRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" className="hidden" onChange={handleBackChange} />
@@ -294,7 +290,7 @@ export default function RegisterPage() {
             {/* Front slot */}
             <div className="space-y-1">
               <p className="text-xs font-medium text-gray-600 text-center">
-                Front side <span className="text-red-500">*</span>
+                Front side
               </p>
               <button
                 type="button"
@@ -328,7 +324,7 @@ export default function RegisterPage() {
             <div className="space-y-1">
               <p className="text-xs font-medium text-gray-600 text-center">
                 Back side{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                <span className="text-gray-400 font-normal">(better address)</span>
               </p>
               <button
                 type="button"
@@ -396,7 +392,7 @@ export default function RegisterPage() {
             </label>
             <input
               type="text"
-              placeholder="As on identity document"
+              placeholder="Your full name"
               value={form.full_name}
               onChange={(e) => set("full_name", e.target.value)}
               required
@@ -408,12 +404,13 @@ export default function RegisterPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date of Birth
+                Date of Birth <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 value={form.dob}
                 onChange={(e) => set("dob", e.target.value)}
+                required
                 disabled={ocrFrozen}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
               />
@@ -438,54 +435,17 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address
+              Home Address <span className="text-red-500">*</span>
             </label>
             <textarea
               rows={3}
-              placeholder="Your home address"
+              placeholder="Street, area, city — enough for the admin to identify you"
               value={form.address}
               onChange={(e) => set("address", e.target.value)}
+              required
               disabled={ocrFrozen}
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green resize-none min-h-0 disabled:opacity-50 disabled:cursor-wait"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ID Type
-              </label>
-              <select
-                value={form.id_type}
-                onChange={(e) => set("id_type", e.target.value)}
-                disabled={ocrFrozen}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
-              >
-                <option value="">Select</option>
-                <option value="Aadhaar">Aadhaar</option>
-                <option value="Passport">Passport</option>
-                <option value="PAN">PAN Card</option>
-                <option value="Voter ID">Voter ID</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last 4 Digits
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="XXXX"
-                value={form.id_last4}
-                onChange={(e) =>
-                  set("id_last4", e.target.value.replace(/\D/g, ""))
-                }
-                disabled={ocrFrozen}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-50 disabled:cursor-wait"
-              />
-            </div>
           </div>
         </section>
 
@@ -496,11 +456,12 @@ export default function RegisterPage() {
           </h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Highest Qualification
+              Highest Qualification <span className="text-red-500">*</span>
             </label>
             <select
               value={form.qualification}
               onChange={(e) => set("qualification", e.target.value)}
+              required
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
             >
               <option value="">Select…</option>
@@ -511,11 +472,11 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Job
+              Job <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
               type="text"
-              placeholder="e.g. Teacher, Software Engineer (optional)"
+              placeholder="e.g. Teacher, Software Engineer"
               value={form.job}
               onChange={(e) => set("job", e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"

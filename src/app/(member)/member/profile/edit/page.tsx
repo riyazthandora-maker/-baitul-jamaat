@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, Clock, XCircle } from "lucide-react";
-import { ID_TYPE_OPTIONS, normalizeIdType, QUALIFICATION_OPTIONS } from "@/lib/member-types";
+import { QUALIFICATION_OPTIONS } from "@/lib/member-types";
 
 interface MemberData {
   id: string;
@@ -13,8 +13,6 @@ interface MemberData {
   email: string | null;
   qualification: string | null;
   job: string | null;
-  id_type: string | null;
-  id_last4: string | null;
   photo_url: string | null;
 }
 
@@ -46,8 +44,6 @@ export default function MemberEditProfilePage() {
     email: "",
     qualification: "",
     job: "",
-    id_type: "",
-    id_last4: "",
   });
 
   useEffect(() => {
@@ -68,8 +64,6 @@ export default function MemberEditProfilePage() {
           email: m.email ?? "",
           qualification: m.qualification ?? "",
           job: m.job ?? "",
-          id_type: normalizeIdType(m.id_type),
-          id_last4: m.id_last4 ?? "",
         });
       }
       if (reqData.request) setPending(reqData.request);
@@ -133,12 +127,6 @@ export default function MemberEditProfilePage() {
       </div>
     );
   }
-
-  // Preserve any stored ID type that isn't one of the standard options
-  const extraIdType =
-    form.id_type && !ID_TYPE_OPTIONS.includes(form.id_type as (typeof ID_TYPE_OPTIONS)[number])
-      ? form.id_type
-      : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -270,30 +258,6 @@ export default function MemberEditProfilePage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">ID Type</label>
-                    <select
-                      value={form.id_type}
-                      onChange={(e) => setForm((p) => ({ ...p, id_type: e.target.value }))}
-                      className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green bg-white"
-                    >
-                      <option value="">Select…</option>
-                      {extraIdType && <option value={extraIdType}>{extraIdType}</option>}
-                      {ID_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">Last 4 Digits</label>
-                    <input
-                      maxLength={4}
-                      value={form.id_last4}
-                      onChange={(e) => setForm((p) => ({ ...p, id_last4: e.target.value.replace(/\D/g, "") }))}
-                      placeholder="1234"
-                      className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green font-mono"
-                    />
-                  </div>
-                </div>
               </div>
 
               {error && (

@@ -17,17 +17,15 @@ export async function extractIdDocumentData(
   dob: string | null;
   gender: string | null;
   address: string | null;
-  id_type: string | null;
-  id_last4: string | null;
 } | null> {
   const model = getModel();
   const hasBack = !!backBase64 && !!backMimeType;
   const prompt = hasBack
-    ? `You have the front and back of an Indian identity document (Aadhaar, PAN, Passport, or Voter ID). Extract ALL information combining both sides and return ONLY a valid JSON object:
-{"name":"full name or null","dob":"YYYY-MM-DD or null","gender":"Male or Female or Other or null","address":"complete address from back side or null","id_type":"aadhaar or passport or pan or voter_id or other","id_last4":"last 4 digits of ID number only or null"}
+    ? `You have the front and back of an identity document. Extract information combining both sides and return ONLY a valid JSON object:
+{"name":"full name or null","dob":"YYYY-MM-DD or null","gender":"Male or Female or Other or null","address":"complete address from back side or null"}
 Return ONLY the JSON. No markdown, no explanation.`
-    : `You are an OCR assistant. Extract information from this Indian identity document (Aadhaar, PAN, Passport, or Voter ID) and return ONLY a valid JSON object:
-{"name":"full name as on document or null","dob":"YYYY-MM-DD format or null","gender":"Male or Female or Other or null","address":"full address or null","id_type":"aadhaar or passport or pan or voter_id or other","id_last4":"last 4 digits of the ID number only or null"}
+    : `You are an OCR assistant. Extract information from this identity document and return ONLY a valid JSON object:
+{"name":"full name as on document or null","dob":"YYYY-MM-DD format or null","gender":"Male or Female or Other or null","address":"full address or null"}
 Return ONLY the JSON object. No markdown, no explanation.`;
 
   const parts: Parameters<typeof model.generateContent>[0] = [
@@ -98,6 +96,35 @@ Relationship must be one of: head, husband, wife, son, daughter, father, mother,
     return parsed.families ?? [];
   } catch {
     return [];
+  }
+}
+
+export async function validateNameAndAddress(
+  name: string,
+  address: string
+): Promise<{ valid: boolean; reason: string | null }> {
+  try {
+    const model = getModel();
+    const prompt = `You are a data quality checker for a mosque membership system.
+
+Evaluate if the following name and address look like real, meaningful data (not gibberish, test data, or random characters):
+Name: "${name}"
+Address: "${address}"
+
+Rules:
+- Name must look like a real person's name (recognizable, not random characters or obvious test data like "aaa" or "test")
+- Address must look like a real physical address (has some location detail — street, city, area, etc.)
+- Non-English names/addresses (Arabic, Malayalam, Urdu, Hindi) are valid
+- Short but valid names (e.g. "Ali") are acceptable
+
+Return ONLY this JSON: {"valid":true,"reason":null} if both look real, or {"valid":false,"reason":"brief reason"} if not.`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const cleaned = text.replace(/^```json\n?/, "").replace(/```\n?$/, "").trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return { valid: true, reason: null };
   }
 }
 
