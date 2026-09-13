@@ -10,13 +10,13 @@ import { useRouter } from "next/navigation";
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/members", label: "Members", icon: Users },
-  { href: "/admin/programs", label: "Programs", icon: TrendingUp },
+  { href: "/admin/programs", label: "Revenue", icon: TrendingUp },
   { href: "/admin/finance", label: "Finance", icon: Wallet },
   { href: "/admin/contacts", label: "Contacts", icon: BookUser },
   { href: "/admin/receipts", label: "Receipts", icon: Receipt },
   { href: "/admin/families", label: "Families", icon: Users2 },
   { href: "/admin/migration", label: "Migration", icon: DatabaseZap },
-  { href: "/guide", label: "Guide", icon: HelpCircle },
+  { href: "/guide", label: "Guide", icon: HelpCircle, external: true },
 ];
 
 export default function AdminNav() {
@@ -47,6 +47,7 @@ export default function AdminNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                {...(item.external ? { target: "_blank", rel: "noreferrer" } : {})}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   active ? "bg-white/20" : "hover:bg-white/10"
                 }`}
@@ -89,6 +90,7 @@ export default function AdminNav() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
+                  {...(item.external ? { target: "_blank", rel: "noreferrer" } : {})}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     active ? "bg-white/20" : "hover:bg-white/10"
                   }`}

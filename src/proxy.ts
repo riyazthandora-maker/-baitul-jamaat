@@ -73,8 +73,13 @@ export async function proxy(request: NextRequest) {
         return supabaseResponse;
       }
 
-      // masjid not found, or explicitly inactive
-      if (!masjid || masjid.active === false) {
+      // Masjid not found — pass through; route handler will return 404
+      if (!masjid) {
+        return supabaseResponse;
+      }
+
+      // Masjid found but explicitly marked inactive
+      if (masjid.active === false) {
         if (masjidApiMatch) {
           return NextResponse.json({ error: "Masjid is inactive" }, { status: 403 });
         }

@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { memberRegistrationSchema } from "@/lib/validators/member";
-import { detectDuplicates } from "@/lib/gemini";
+import { detectDuplicates, validateNameAndAddress } from "@/lib/gemini";
 import { sendEmail } from "@/lib/email";
-import { normalizeIdType } from "@/lib/member-types";
 import { getAppUrl } from "@/lib/utils";
 
 export async function POST(
@@ -22,12 +21,10 @@ export async function POST(
       full_name: formData.get("full_name") as string,
       phone: formData.get("phone") as string,
       email: (formData.get("email") as string) || undefined,
-      dob: (formData.get("dob") as string) || null,
+      dob: (formData.get("dob") as string) || "",
       gender: (formData.get("gender") as string) || null,
-      address: (formData.get("address") as string) || null,
-      id_type: normalizeIdType(formData.get("id_type") as string) || null,
-      id_last4: (formData.get("id_last4") as string) || null,
-      qualification: (formData.get("qualification") as string) || null,
+      address: (formData.get("address") as string) || "",
+      qualification: (formData.get("qualification") as string) || "",
       job: (formData.get("job") as string) || null,
     };
 
@@ -39,9 +36,21 @@ export async function POST(
       );
     }
 
+    // AI validation — name and address must look like real data
+    const nameAddressCheck = await validateNameAndAddress(
+      parsed.data.full_name,
+      parsed.data.address
+    );
+    if (!nameAddressCheck.valid) {
+      return NextResponse.json(
+        { error: nameAddressCheck.reason ?? "Please enter a valid name and address." },
+        { status: 400 }
+      );
+    }
+
     const supabase = await createAdminClient();
 
-    // Raw service-role client — needed for storage uploads (SSR client doesn't bypass storage RLS)
+    // Service-role client for photo upload (bypasses storage RLS)
     const storageClient = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -58,11 +67,10 @@ export async function POST(
       return NextResponse.json({ error: "Masjid not found" }, { status: 404 });
     }
 
-    // Generate a stable ID for file paths before inserting the member row
     const memberId = crypto.randomUUID();
     const folder = `${masjid.id}/${memberId}`;
 
-    // Ensure bucket exists (creates it if migration 005 wasn't run)
+    // Upload photo only (no identity documents stored)
     await storageClient.storage.createBucket("member-documents", { public: false }).catch(() => {});
 
     async function uploadFile(file: File, path: string): Promise<string | null> {
@@ -81,27 +89,6 @@ export async function POST(
       return file.name.split(".").pop()?.toLowerCase() ?? "jpg";
     }
 
-    // Upload ID document front (mandatory)
-    const idDocFront = formData.get("id_doc_front") as File | null;
-    if (!idDocFront || idDocFront.size === 0) {
-      return NextResponse.json({ error: "Front of ID document is required" }, { status: 400 });
-    }
-    if (idDocFront.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "ID document exceeds 5 MB limit" }, { status: 400 });
-    }
-    const id_doc_url = await uploadFile(idDocFront, `${folder}/id_doc_front.${ext(idDocFront)}`);
-    if (!id_doc_url) {
-      return NextResponse.json({ error: "Failed to upload ID document front" }, { status: 500 });
-    }
-
-    // Upload ID document back (optional)
-    const idDocBack = formData.get("id_doc_back") as File | null;
-    let id_doc_back_url: string | null = null;
-    if (idDocBack && idDocBack.size > 0 && idDocBack.size <= 5 * 1024 * 1024) {
-      id_doc_back_url = await uploadFile(idDocBack, `${folder}/id_doc_back.${ext(idDocBack)}`);
-    }
-
-    // Upload photo (optional)
     const photoFile = formData.get("photo") as File | null;
     let photo_url: string | null = null;
     if (photoFile && photoFile.size > 0) {
@@ -115,7 +102,6 @@ export async function POST(
       .eq("masjid_id", masjid.id)
       .in("status", ["active", "pending"]);
 
-    // Gemini name + address fuzzy match
     const dupResult = await detectDuplicates(
       {
         phone: parsed.data.phone,
@@ -132,7 +118,6 @@ export async function POST(
       }))
     );
 
-    // Hard reject on exact duplicate
     if (dupResult.classification === "duplicate") {
       return NextResponse.json(
         {
@@ -144,8 +129,7 @@ export async function POST(
       );
     }
 
-    // Insert member row (service role bypasses RLS). Keep a compatibility retry
-    // for databases that have not yet applied migration 019.
+    // Insert member row — no identity document URLs stored
     const memberInsert = {
       id: memberId,
       masjid_id: masjid.id,
@@ -156,13 +140,11 @@ export async function POST(
       dob: parsed.data.dob || null,
       gender: parsed.data.gender || null,
       address: parsed.data.address || null,
-      id_type: parsed.data.id_type || null,
-      id_last4: parsed.data.id_last4 || null,
       qualification: parsed.data.qualification || null,
       job: parsed.data.job || null,
       photo_url,
-      id_doc_url,
-      id_doc_back_url,
+      id_doc_url: null,
+      id_doc_back_url: null,
       duplicate_flag: dupResult.classification,
       duplicate_reason: dupResult.reason,
     };
@@ -185,7 +167,6 @@ export async function POST(
       );
     }
 
-    // Gap 6: notify masjid admin of the new pending registration
     if (masjid.contact_email) {
       const appUrl = getAppUrl(request.nextUrl.origin);
       const flagNote = dupResult.classification === "possible_duplicate"
@@ -216,7 +197,6 @@ export async function POST(
           masjid_id: masjid.id,
         });
       } catch (emailErr) {
-        // Registration is already persisted; notification delivery can be retried later.
         console.error("[Register] admin notification failed:", emailErr);
       }
     }

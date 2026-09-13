@@ -57,6 +57,7 @@ export default async function MemberDashboard() {
         <div className="flex items-center gap-2">
           <Link
             href="/guide"
+            target="_blank"
             className="text-white/70 hover:text-white transition-colors p-1"
             title="User Guide"
           >

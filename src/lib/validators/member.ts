@@ -9,16 +9,10 @@ export const memberRegistrationSchema = z.object({
       "Enter a valid phone number (10-digit Indian or international with country code e.g. +447911123456)"
     ),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  dob: z.string().optional().nullable(),
+  dob: z.string().min(1, "Date of birth is required"),
   gender: z.enum(["Male", "Female", "Other"]).optional().nullable(),
-  address: z.string().optional().nullable(),
-  id_type: z.string().optional().nullable(),
-  id_last4: z
-    .string()
-    .regex(/^\d{4}$/, "Must be exactly 4 digits")
-    .optional()
-    .nullable(),
-  qualification: z.string().optional().nullable(),
+  address: z.string().min(5, "Address is required (at least 5 characters)"),
+  qualification: z.string().min(1, "Qualification is required"),
   job: z.string().optional().nullable(),
 });
 

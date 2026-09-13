@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Pencil, X, Check } from "lucide-react";
-import { ID_TYPE_OPTIONS, normalizeIdType, QUALIFICATION_OPTIONS } from "@/lib/member-types";
+import { QUALIFICATION_OPTIONS } from "@/lib/member-types";
 
 interface Props {
   memberId: string;
@@ -15,8 +15,6 @@ interface Props {
     address: string | null;
     qualification: string | null;
     job: string | null;
-    id_type: string | null;
-    id_last4: string | null;
   };
 }
 
@@ -35,18 +33,10 @@ export default function AdminMemberEditForm({ memberId, member }: Props) {
     address: member.address ?? "",
     qualification: member.qualification ?? "",
     job: member.job ?? "",
-    id_type: normalizeIdType(member.id_type),
-    id_last4: member.id_last4 ?? "",
   });
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
-
-  // Preserve any stored ID type that isn't one of the standard options
-  const extraIdType =
-    form.id_type && !ID_TYPE_OPTIONS.includes(form.id_type as (typeof ID_TYPE_OPTIONS)[number])
-      ? form.id_type
-      : null;
 
   const handleSave = async () => {
     setSaving(true);
@@ -114,18 +104,6 @@ export default function AdminMemberEditForm({ memberId, member }: Props) {
             <div>
               <label className="text-xs text-gray-500 uppercase tracking-wide">Job</label>
               <input value={form.job} onChange={set("job")} placeholder="e.g. Teacher" className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 uppercase tracking-wide">ID Type</label>
-              <select value={form.id_type} onChange={set("id_type")} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green bg-white">
-                <option value="">Select…</option>
-                {extraIdType && <option value={extraIdType}>{extraIdType}</option>}
-                {ID_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 uppercase tracking-wide">ID Last 4 Digits</label>
-              <input maxLength={4} value={form.id_last4} onChange={(e) => setForm((p) => ({ ...p, id_last4: e.target.value.replace(/\D/g, "") }))} placeholder="1234" className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green font-mono" />
             </div>
           </div>
 

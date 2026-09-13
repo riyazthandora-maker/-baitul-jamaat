@@ -7,6 +7,7 @@ import {
   BookOpen, Key, ChevronDown, ChevronUp, ArrowLeft,
   Smartphone, QrCode, UserPlus, FolderOpen, BarChart3,
   AlertCircle, Lightbulb, Star, Shield, HelpCircle,
+  TrendingDown, BookUser, Tag,
 } from "lucide-react";
 
 type Role = "admin" | "member";
@@ -49,15 +50,15 @@ const adminSteps: Step[] = [
   },
   {
     icon: <BookOpen className="w-6 h-6" />,
-    title: "പ്രോഗ്രാമുകൾ ഉണ്ടാക്കൽ",
+    title: "റിവന്യൂ ഉണ്ടാക്കൽ",
     summary: "ചാർജ് ചെയ്യുന്ന പദ്ധതികൾ സൃഷ്ടിക്കുക",
     steps: [
-      "Programs → 'New Program' ക്ലിക്ക് ചെയ്യുക.",
-      "പ്രോഗ്രാം പേര്, തരം (Monthly/Yearly/One-time), തുക നൽകുക.",
+      "Revenue → 'New Revenue' ക്ലിക്ക് ചെയ്യുക.",
+      "റിവന്യൂ പേര്, തരം (Monthly/Yearly/One-time), തുക നൽകുക.",
       "Save ചെയ്ത ശേഷം 'Enroll Members' ക്ലിക്ക് ചെയ്ത് അംഗങ്ങളെ ചേർക്കുക.",
       "Monthly/Yearly ആണെങ്കിൽ ബില്ലിംഗ് ഓട്ടോമാറ്റിക്കലി നടക്കും (ദൈനംദിന ക്രോൺ ജോബ്).",
     ],
-    tip: "ഒരു അംഗം ഒന്നിലധികം Programs-ൽ ഉൾപ്പെടാം.",
+    tip: "ഒരു അംഗം ഒന്നിലധികം Revenue-ൽ ഉൾപ്പെടാം.",
   },
   {
     icon: <CreditCard className="w-6 h-6" />,
@@ -115,6 +116,45 @@ const adminSteps: Step[] = [
       "Email ഉള്ള അംഗത്തിന് നേരിട്ട് Email ആക്കാം; PDF Download-ഉം ചെയ്യാം.",
       "എല്ലാ അംഗങ്ങളുടെയും Statement Admin-ന് ഓട്ടോ Email ആകും (മാസം ഒന്ന്, 12:30 AM).",
     ],
+  },
+  {
+    icon: <Tag className="w-6 h-6" />,
+    title: "Service Fee Recording",
+    summary: "Nikkah, House Warming, Aqeeqa — Member Ledger-ൽ Charge ചേർക്കുക",
+    steps: [
+      "Programs → 'Fee Codes' ബട്ടൺ ക്ലിക്ക് ചെയ്ത് Fee Code ഉണ്ടാക്കുക (ഉദാ: NIKKAH, HOUSEWARMING).",
+      "Code, Name, Default Amount, Description നൽകി Save ചെയ്യുക.",
+      "'Record Fee' ബട്ടൺ ക്ലിക്ക് ചെയ്ത് Member Search ചെയ്ത് തിരഞ്ഞെടുക്കുക.",
+      "Fee Code, Date, Amount (Default മാറ്റാം), Description (ഐച്ഛിക) നൽകി Record ചെയ്യുക.",
+      "Member Ledger-ൽ ആ Charge ഉടൻ കാണും — Fee Code Badge Green-ൽ കാണിക്കും.",
+    ],
+    tip: "ഒരേ Fee Code ഉപയോഗിച്ച് ഒന്നിലധികം Members-ന് Charge ചേർക്കാം. 'Record Another' ബട്ടൺ ക്ലിക്ക് ചെയ്ത് വേഗം ചേർക്കാം.",
+  },
+  {
+    icon: <BookUser className="w-6 h-6" />,
+    title: "Contacts മാനേജ്‌മെന്റ്",
+    summary: "External Payee / Donor-ന്റെ വിവരങ്ങൾ സൂക്ഷിക്കുക",
+    steps: [
+      "Contacts → 'New Contact' ക്ലിക്ക് ചെയ്യുക.",
+      "പേര്, Phone (ഐച്ഛിക), Email (ഐച്ഛിക) നൽകി Save ചെയ്യുക.",
+      "Finance-ൽ Revenue/Expense ചേർക്കുമ്പോൾ Contact Search ചെയ്ത് Link ചെയ്യുക.",
+      "Contact Deactivate ചെയ്യാൻ Contact Row-ൽ Toggle ക്ലിക്ക് ചെയ്യുക.",
+    ],
+    tip: "Email ഉള്ള Contacts-ന് Voucher PDF ഓട്ടോ Email ആകും — Expense Settle ചെയ്യുമ്പോൾ.",
+  },
+  {
+    icon: <TrendingDown className="w-6 h-6" />,
+    title: "ഫിനാൻസ് മൊഡ്യൂൾ",
+    summary: "Revenue, Expense, Voucher — External Contacts-നായി",
+    steps: [
+      "Finance → 'New Revenue' ക്ലിക്ക് ചെയ്ത് External Contact-ൽ നിന്ന് ലഭിച്ച Revenue ചേർക്കുക.",
+      "'New Expense' ക്ലിക്ക് ചെയ്ത് Payee Contact, തുക, Voucher Number ചേർക്കുക.",
+      "Expense Row-ൽ Card Icon ക്ലിക്ക് ചെയ്ത് Settle (Pay) ചെയ്യുക — Contact-ന് Voucher PDF ഓട്ടോ Email ആകും.",
+      "Receipt Icon ക്ലിക്ക് ചെയ്ത് Voucher PDF Download ചെയ്യുക.",
+      "Revenue Row-ൽ Receipt Icon ഉപയോഗിച്ച് Receipt Generate ചെയ്യുക.",
+      "ലിസ്റ്റ് ചുവടെ Revenue Total, Expense Total, Net Balance Summary കാണും.",
+    ],
+    tip: "Type Filter ഉപയോഗിച്ച് Revenue/Expense വേർ കാണുക; Date Range Filter ഉപയോഗിച്ച് ഒരു മാസം/വർഷം Filter ചെയ്യാം.",
   },
 ];
 
