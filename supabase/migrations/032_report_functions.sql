@@ -176,9 +176,9 @@ CREATE OR REPLACE FUNCTION get_collections_summary(
 )
 RETURNS TABLE (source TEXT, txn_count BIGINT, total NUMERIC)
 LANGUAGE SQL STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT 'Member Payments'::TEXT,
-    COUNT(*)::BIGINT,
-    COALESCE(SUM(l.amount),0)
+  SELECT 'Member Payments'::TEXT            AS source,
+    COUNT(*)::BIGINT                        AS txn_count,
+    COALESCE(SUM(l.amount),0)              AS total
   FROM ledger l
   WHERE l.masjid_id = p_masjid_id AND l.type = 'payment' AND l.voided_at IS NULL
     AND (p_from IS NULL OR COALESCE(l.transaction_date,l.created_at::date) >= p_from)
@@ -205,7 +205,7 @@ LANGUAGE SQL STABLE SECURITY DEFINER SET search_path = public AS $$
     AND (p_from IS NULL OR d.created_at::date >= p_from)
     AND (p_to   IS NULL OR d.created_at::date <= p_to)
 
-  ORDER BY total DESC;
+  ORDER BY 3 DESC;
 $$;
 
 REVOKE ALL ON FUNCTION get_collections_summary(UUID,DATE,DATE) FROM PUBLIC;
@@ -226,10 +226,11 @@ RETURNS TABLE (
 )
 LANGUAGE SQL STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT
-    c.id, c.name,
-    COUNT(re.id)::BIGINT,
-    COALESCE(SUM(re.amount),0),
-    MAX(re.date)
+    c.id                        AS contact_id,
+    c.name                      AS contact_name,
+    COUNT(re.id)::BIGINT        AS expense_count,
+    COALESCE(SUM(re.amount),0)  AS total_paid,
+    MAX(re.date)                AS latest_date
   FROM revenue_expenses re
   JOIN contacts c ON c.id = re.entity_id AND re.entity_type = 'contact'
   WHERE re.masjid_id = p_masjid_id AND re.type = 'expense'
