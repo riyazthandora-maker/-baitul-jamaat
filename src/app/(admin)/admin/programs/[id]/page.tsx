@@ -5,6 +5,7 @@ import { ArrowLeft, Users, Download } from "lucide-react";
 import ProgramActions from "@/components/ProgramActions";
 import UnenrollButton from "@/components/UnenrollButton";
 import RunBillingForm from "@/components/RunBillingForm";
+import CatchUpBillingButton from "@/components/CatchUpBillingButton";
 
 export default async function ProgramDetailPage({
   params,
@@ -82,6 +83,17 @@ export default async function ProgramDetailPage({
 
       {/* Manual Billing */}
       <RunBillingForm programId={program.id} recurrence={program.recurrence} />
+
+      {/* Catch-up billing for scheduled programs */}
+      {program.recurrence !== "on_demand" && (
+        <div className="bg-white rounded-xl shadow-sm p-5 space-y-3">
+          <h2 className="font-semibold text-gray-700 text-sm">Missed Billing Periods</h2>
+          <p className="text-xs text-gray-400">
+            Use this if automatic billing was missed. Runs each missed period individually — already-billed periods are skipped safely.
+          </p>
+          <CatchUpBillingButton programId={program.id} />
+        </div>
+      )}
 
       {/* Enrollments */}
       <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">

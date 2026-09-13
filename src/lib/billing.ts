@@ -175,6 +175,49 @@ export async function runProgramBilling(
   return result;
 }
 
+export function getMissedBillingDates(
+  program: {
+    start_date: string;
+    end_date: string | null;
+    recurrence: string;
+    last_billed_at: string | null;
+  },
+  today: Date
+): Date[] {
+  if (program.recurrence === "on_demand") return [];
+
+  const start = new Date(program.start_date + "T00:00:00");
+  const end = program.end_date ? new Date(program.end_date + "T00:00:00") : null;
+  const missed: Date[] = [];
+
+  if (program.recurrence === "monthly") {
+    const billingDay = start.getDate();
+    let cursor: Date;
+    if (program.last_billed_at) {
+      const lb = new Date(program.last_billed_at);
+      cursor = new Date(lb.getFullYear(), lb.getMonth() + 1, billingDay);
+    } else {
+      cursor = new Date(start.getFullYear(), start.getMonth(), billingDay);
+    }
+    while (cursor <= today) {
+      if (cursor >= start && (!end || cursor <= end)) missed.push(new Date(cursor));
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, billingDay);
+    }
+  } else if (program.recurrence === "yearly") {
+    const billingMonth = start.getMonth();
+    const billingDay = start.getDate();
+    const startYear = program.last_billed_at
+      ? new Date(program.last_billed_at).getFullYear() + 1
+      : start.getFullYear();
+    for (let y = startYear; y <= today.getFullYear(); y++) {
+      const d = new Date(y, billingMonth, billingDay);
+      if (d >= start && d <= today && (!end || d <= end)) missed.push(d);
+    }
+  }
+
+  return missed;
+}
+
 export async function getMemberBalance(
   supabase: SupabaseClient,
   memberId: string
