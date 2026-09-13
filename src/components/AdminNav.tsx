@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Users, LogOut, TrendingUp, Receipt, Users2, DatabaseZap, Menu, X, HelpCircle, Wallet, BookUser } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, TrendingUp, Receipt, Users2, DatabaseZap, Menu, X, HelpCircle, Wallet, BookUser, BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/admin/contacts", label: "Contacts", icon: BookUser },
   { href: "/admin/receipts", label: "Receipts", icon: Receipt },
   { href: "/admin/families", label: "Families", icon: Users2 },
+  { href: "/admin/reports", label: "Reports", icon: BookOpen },
   { href: "/admin/migration", label: "Migration", icon: DatabaseZap },
   { href: "/guide", label: "Guide", icon: HelpCircle, external: true },
 ];
