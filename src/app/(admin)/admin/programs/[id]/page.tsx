@@ -68,7 +68,7 @@ export default async function ProgramDetailPage({
           </p>
         </div>
         <div>
-          <p className="text-gray-400">Last Billed</p>
+          <p className="text-gray-400">{program.recurrence === "on_demand" ? "Last Run" : "Last Billed"}</p>
           <p className="font-semibold">
             {program.last_billed_at
               ? new Date(program.last_billed_at).toLocaleDateString("en-IN")
@@ -81,7 +81,7 @@ export default async function ProgramDetailPage({
       <ProgramActions programId={program.id} active={program.active} />
 
       {/* Manual Billing */}
-      <RunBillingForm programId={program.id} />
+      <RunBillingForm programId={program.id} recurrence={program.recurrence} />
 
       {/* Enrollments */}
       <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">

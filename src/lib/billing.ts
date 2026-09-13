@@ -4,13 +4,14 @@ export function computePeriodKey(
   programId: string,
   memberId: string,
   date: Date,
-  recurrence: "monthly" | "yearly"
+  recurrence: "monthly" | "yearly" | "on_demand"
 ): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
-  return recurrence === "monthly"
-    ? `${programId}:${memberId}:${year}-${month}`
-    : `${programId}:${memberId}:${year}`;
+  const day = String(date.getDate()).padStart(2, "0");
+  if (recurrence === "monthly") return `${programId}:${memberId}:${year}-${month}`;
+  if (recurrence === "on_demand") return `${programId}:${memberId}:od:${year}-${month}-${day}`;
+  return `${programId}:${memberId}:${year}`;
 }
 
 export function isBillingDue(
@@ -25,6 +26,7 @@ export function isBillingDue(
   if (today < start) return false;
   if (end && today > end) return false;
 
+  if (program.recurrence === "on_demand") return false;
   if (program.recurrence === "monthly") {
     return today.getDate() === start.getDate();
   }
@@ -76,7 +78,7 @@ export async function runBillingCycle(
         program.id,
         enrollment.member_id,
         date,
-        program.recurrence as "monthly" | "yearly"
+        program.recurrence as "monthly" | "yearly" | "on_demand"
       );
 
       const { error: insertErr } = await supabase.from("ledger").insert({
@@ -145,7 +147,7 @@ export async function runProgramBilling(
       programId,
       enrollment.member_id,
       date,
-      program.recurrence as "monthly" | "yearly"
+      program.recurrence as "monthly" | "yearly" | "on_demand"
     );
 
     const { error: insertErr } = await supabase.from("ledger").insert({
