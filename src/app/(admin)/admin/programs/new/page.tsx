@@ -52,7 +52,7 @@ export default function NewProgramPage() {
         <Link href="/admin/programs" className="text-gray-400 hover:text-gray-600">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-brand-green">New Revenue</h1>
+        <h1 className="text-2xl font-bold text-brand-green">New Program</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-4">
@@ -91,6 +91,7 @@ export default function NewProgramPage() {
             >
               <option value="monthly">Monthly</option>
               <option value="yearly">Yearly</option>
+              <option value="on_demand">On Demand</option>
             </select>
           </div>
         </div>
@@ -124,7 +125,10 @@ export default function NewProgramPage() {
             onChange={(e) => set("active", e.target.checked)}
             className="w-5 h-5 rounded accent-brand-green"
           />
-          <span className="text-sm font-medium text-gray-700">Active (billing will run immediately)</span>
+          <span className="text-sm font-medium text-gray-700">
+            Active
+            {form.recurrence !== "on_demand" && " (auto-billing enabled)"}
+          </span>
         </label>
 
         {error && (

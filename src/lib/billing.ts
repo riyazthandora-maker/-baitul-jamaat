@@ -4,13 +4,14 @@ export function computePeriodKey(
   programId: string,
   memberId: string,
   date: Date,
-  recurrence: "monthly" | "yearly"
+  recurrence: "monthly" | "yearly" | "on_demand"
 ): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
-  return recurrence === "monthly"
-    ? `${programId}:${memberId}:${year}-${month}`
-    : `${programId}:${memberId}:${year}`;
+  const day = String(date.getDate()).padStart(2, "0");
+  if (recurrence === "monthly") return `${programId}:${memberId}:${year}-${month}`;
+  if (recurrence === "on_demand") return `${programId}:${memberId}:od:${year}-${month}-${day}`;
+  return `${programId}:${memberId}:${year}`;
 }
 
 export function isBillingDue(
@@ -25,6 +26,7 @@ export function isBillingDue(
   if (today < start) return false;
   if (end && today > end) return false;
 
+  if (program.recurrence === "on_demand") return false;
   if (program.recurrence === "monthly") {
     return today.getDate() === start.getDate();
   }
@@ -76,7 +78,7 @@ export async function runBillingCycle(
         program.id,
         enrollment.member_id,
         date,
-        program.recurrence as "monthly" | "yearly"
+        program.recurrence as "monthly" | "yearly" | "on_demand"
       );
 
       const { error: insertErr } = await supabase.from("ledger").insert({
@@ -145,7 +147,7 @@ export async function runProgramBilling(
       programId,
       enrollment.member_id,
       date,
-      program.recurrence as "monthly" | "yearly"
+      program.recurrence as "monthly" | "yearly" | "on_demand"
     );
 
     const { error: insertErr } = await supabase.from("ledger").insert({
@@ -171,6 +173,49 @@ export async function runProgramBilling(
   }
 
   return result;
+}
+
+export function getMissedBillingDates(
+  program: {
+    start_date: string;
+    end_date: string | null;
+    recurrence: string;
+    last_billed_at: string | null;
+  },
+  today: Date
+): Date[] {
+  if (program.recurrence === "on_demand") return [];
+
+  const start = new Date(program.start_date + "T00:00:00");
+  const end = program.end_date ? new Date(program.end_date + "T00:00:00") : null;
+  const missed: Date[] = [];
+
+  if (program.recurrence === "monthly") {
+    const billingDay = start.getDate();
+    let cursor: Date;
+    if (program.last_billed_at) {
+      const lb = new Date(program.last_billed_at);
+      cursor = new Date(lb.getFullYear(), lb.getMonth() + 1, billingDay);
+    } else {
+      cursor = new Date(start.getFullYear(), start.getMonth(), billingDay);
+    }
+    while (cursor <= today) {
+      if (cursor >= start && (!end || cursor <= end)) missed.push(new Date(cursor));
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, billingDay);
+    }
+  } else if (program.recurrence === "yearly") {
+    const billingMonth = start.getMonth();
+    const billingDay = start.getDate();
+    const startYear = program.last_billed_at
+      ? new Date(program.last_billed_at).getFullYear() + 1
+      : start.getFullYear();
+    for (let y = startYear; y <= today.getFullYear(); y++) {
+      const d = new Date(y, billingMonth, billingDay);
+      if (d >= start && d <= today && (!end || d <= end)) missed.push(d);
+    }
+  }
+
+  return missed;
 }
 
 export async function getMemberBalance(

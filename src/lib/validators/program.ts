@@ -3,7 +3,7 @@ import { z } from "zod";
 export const programSchema = z.object({
   name: z.string().min(2, "Program name is required"),
   default_amount: z.coerce.number().positive("Amount must be greater than 0"),
-  recurrence: z.enum(["monthly", "yearly"]),
+  recurrence: z.enum(["monthly", "yearly", "on_demand"]),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().optional().nullable(),
   active: z.boolean().default(true),
