@@ -17,6 +17,7 @@ import {
   ReceiptText,
   FileText,
   CreditCard,
+  Trash2,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -226,10 +227,12 @@ function EntryRow({
   entry,
   onEdit,
   onUpdated,
+  onDeleted,
 }: {
   entry: Entry;
   onEdit: (e: Entry) => void;
   onUpdated: (e: Entry) => void;
+  onDeleted: (id: string) => void;
 }) {
   const [resending, setResending] = useState(false);
   const [resendDone, setResendDone] = useState(false);
@@ -237,6 +240,9 @@ function EntryRow({
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [settling, setSettling] = useState(false);
   const [settleError, setSettleError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const docNumber = entry.type === "revenue" ? entry.receipt_number : entry.voucher_number;
   const isRevenue = entry.type === "revenue";
@@ -286,6 +292,24 @@ function EntryRow({
       setSettleError("Could not settle expense");
     } finally {
       setSettling(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/admin/revenue-expenses/${entry.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteError(data.error ?? "Could not delete entry");
+        setDeleting(false);
+        return;
+      }
+      onDeleted(entry.id);
+    } catch {
+      setDeleteError("Could not delete entry");
+      setDeleting(false);
     }
   }
 
@@ -390,6 +414,39 @@ function EntryRow({
           <FileText className="w-3.5 h-3.5" />
         </a>
       )}
+
+      {/* Delete */}
+      {!confirmDelete ? (
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          title="Delete entry"
+          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      ) : (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Confirm delete"
+            className="px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 disabled:opacity-60 flex items-center gap-1 transition-colors"
+          >
+            {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+            {deleting ? "…" : "Delete"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setConfirmDelete(false); setDeleteError(null); }}
+            title="Cancel"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -422,6 +479,7 @@ function EntryRow({
           </div>
           {receiptError && <p className="mt-1 text-xs text-red-600">{receiptError}</p>}
           {settleError && <p className="mt-1 text-xs text-red-600">{settleError}</p>}
+          {deleteError && <p className="mt-1 text-xs text-red-600">{deleteError}</p>}
         </div>
       </div>
 
@@ -464,6 +522,7 @@ function EntryRow({
       </div>
       {receiptError && <p className="pb-1 text-xs text-red-600 md:pl-10">{receiptError}</p>}
       {settleError && <p className="pb-1 text-xs text-red-600 md:pl-10">{settleError}</p>}
+      {deleteError && <p className="pb-1 text-xs text-red-600 md:pl-10">{deleteError}</p>}
     </div>
   );
 }
@@ -687,6 +746,11 @@ export default function FinanceTable({ refreshKey }: { refreshKey: number }) {
     setEditTarget(null);
   }
 
+  function handleEntryDeleted(id: string) {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    setTotal((prev) => prev - 1);
+  }
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const showingFrom = total === 0 ? 0 : (filters.page - 1) * PAGE_SIZE + 1;
   const showingTo = Math.min(filters.page * PAGE_SIZE, total);
@@ -744,6 +808,7 @@ export default function FinanceTable({ refreshKey }: { refreshKey: number }) {
                 entry={entry}
                 onEdit={setEditTarget}
                 onUpdated={handleEntryUpdated}
+                onDeleted={handleEntryDeleted}
               />
             ))}
           </div>
