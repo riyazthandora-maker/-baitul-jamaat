@@ -26,6 +26,7 @@ function drawHRule(
 export async function generateReceiptPdf(receipt: {
   receipt_number: string;
   created_at: string;
+  receipt_date?: string | null;
   amount: number;
   notes: string | null;
   title?: string;
@@ -65,7 +66,7 @@ export async function generateReceiptPdf(receipt: {
     font: bold,
     color: rgb(1, 1, 1),
   });
-  page.drawText(new Date(receipt.created_at).toLocaleDateString("en-IN"), {
+  page.drawText(new Date((receipt.receipt_date ?? receipt.created_at) + (receipt.receipt_date ? "T00:00:00" : "")).toLocaleDateString("en-IN"), {
     x: width - 180,
     y: y + 4,
     size: 10,

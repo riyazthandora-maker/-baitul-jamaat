@@ -261,6 +261,7 @@ export interface Database {
         Row: {
           id: string;
           created_at: string;
+          receipt_date: string;
           masjid_id: string;
           member_id: string;
           receipt_number: string;
@@ -273,6 +274,7 @@ export interface Database {
         Insert: {
           id?: string;
           created_at?: string;
+          receipt_date?: string;
           masjid_id: string;
           member_id: string;
           receipt_number: string;
