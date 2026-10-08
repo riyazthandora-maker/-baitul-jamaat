@@ -7,13 +7,24 @@ import Link from "next/link";
 
 type Member = { id: string; full_name: string; member_number: string | null; phone: string };
 
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function oneMonthAgoISO() {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default function NewReceiptPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselect = searchParams.get("member_id") ?? "";
 
   const [members, setMembers] = useState<Member[]>([]);
-  const [form, setForm] = useState({ member_id: preselect, amount: "", notes: "" });
+  const [form, setForm] = useState({ member_id: preselect, amount: "", notes: "", receipt_date: todayISO() });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +83,20 @@ export default function NewReceiptPage() {
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Date *</label>
+          <input
+            required
+            type="date"
+            value={form.receipt_date}
+            min={oneMonthAgoISO()}
+            max={todayISO()}
+            onChange={(e) => set("receipt_date", e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+          />
+          <p className="text-xs text-gray-400 mt-1">Accepted range: past one month up to today. Cannot be changed after saving.</p>
         </div>
 
         <div>

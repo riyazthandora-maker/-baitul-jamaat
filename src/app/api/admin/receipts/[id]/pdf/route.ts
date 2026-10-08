@@ -35,6 +35,7 @@ export async function GET(
   const pdfBytes = await generateReceiptPdf({
     receipt_number: receipt.receipt_number,
     created_at: receipt.created_at,
+    receipt_date: receipt.receipt_date,
     amount: receipt.amount,
     notes: receipt.notes,
     payee: { name: member.full_name, identifier: member.member_number, phone: member.phone },
