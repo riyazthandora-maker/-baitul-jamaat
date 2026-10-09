@@ -1,6 +1,7 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 const GREEN = rgb(0.102, 0.42, 0.235); // #1a6b3c
+const RED   = rgb(0.72, 0.11, 0.11);   // #b81c1c
 const GOLD = rgb(0.788, 0.635, 0.153); // #c9a227
 const GRAY = rgb(0.4, 0.4, 0.4);
 const BLACK = rgb(0, 0, 0);
@@ -32,6 +33,7 @@ export async function generateReceiptPdf(receipt: {
   title?: string;
   payeeLabel?: string;
   amountLabel?: string;
+  theme?: "green" | "red";
   payee: { name: string; identifier: string | null; phone: string | null };
   masjid: { name: string; address: string; phone: string };
 }): Promise<Uint8Array> {
@@ -41,10 +43,12 @@ export async function generateReceiptPdf(receipt: {
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const regular = await doc.embedFont(StandardFonts.Helvetica);
 
+  const accent = receipt.theme === "red" ? RED : GREEN;
+
   let y = height - 40;
 
   // Header band
-  page.drawRectangle({ x: 0, y: y - 10, width, height: 54, color: GREEN });
+  page.drawRectangle({ x: 0, y: y - 10, width, height: 54, color: accent });
   page.drawText(receipt.title ?? "PAYMENT RECEIPT", {
     x: 40,
     y: y + 22,
@@ -107,7 +111,7 @@ export async function generateReceiptPdf(receipt: {
     y: y + 8,
     size: 20,
     font: bold,
-    color: GREEN,
+    color: accent,
   });
 
   y -= 36;

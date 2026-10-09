@@ -5,12 +5,16 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, Clock, XCircle } from "lucide-react";
 import { QUALIFICATION_OPTIONS } from "@/lib/member-types";
+import IdDocumentOcrSection, { OcrResult } from "@/components/IdDocumentOcrSection";
 
 interface MemberData {
   id: string;
   full_name: string;
   phone: string;
   email: string | null;
+  dob: string | null;
+  gender: string | null;
+  address: string | null;
   qualification: string | null;
   job: string | null;
   photo_url: string | null;
@@ -42,6 +46,9 @@ export default function MemberEditProfilePage() {
     full_name: "",
     phone: "",
     email: "",
+    dob: "",
+    gender: "",
+    address: "",
     qualification: "",
     job: "",
   });
@@ -62,6 +69,9 @@ export default function MemberEditProfilePage() {
           full_name: m.full_name ?? "",
           phone: m.phone ?? "",
           email: m.email ?? "",
+          dob: m.dob ?? "",
+          gender: m.gender ?? "",
+          address: m.address ?? "",
           qualification: m.qualification ?? "",
           job: m.job ?? "",
         });
@@ -71,6 +81,16 @@ export default function MemberEditProfilePage() {
     }
     load();
   }, []);
+
+  const handleOcrFill = (data: OcrResult) => {
+    setForm((p) => ({
+      ...p,
+      ...(data.name ? { full_name: data.name } : {}),
+      ...(data.dob ? { dob: data.dob } : {}),
+      ...(data.gender ? { gender: data.gender } : {}),
+      ...(data.address ? { address: data.address } : {}),
+    }));
+  };
 
   const handlePhotoChange = (file: File) => {
     setPhotoFile(file);
@@ -203,6 +223,8 @@ export default function MemberEditProfilePage() {
                 />
               </div>
 
+              <IdDocumentOcrSection onFill={handleOcrFill} />
+
               <div className="space-y-3">
                 <div>
                   <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">Full Name *</label>
@@ -232,6 +254,39 @@ export default function MemberEditProfilePage() {
                     value={form.email}
                     onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={form.dob}
+                    onChange={(e) => setForm((p) => ({ ...p, dob: e.target.value }))}
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">Gender</label>
+                  <select
+                    value={form.gender}
+                    onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green bg-white"
+                  >
+                    <option value="">Select…</option>
+                    {["Male", "Female", "Other"].map((g) => <option key={g}>{g}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 uppercase tracking-wide font-medium">Address</label>
+                  <textarea
+                    value={form.address}
+                    onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
+                    rows={2}
+                    placeholder="House / Street / City"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green resize-none"
                   />
                 </div>
 

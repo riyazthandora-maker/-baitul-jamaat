@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil, X, Check } from "lucide-react";
 import { QUALIFICATION_OPTIONS } from "@/lib/member-types";
+import IdDocumentOcrSection, { OcrResult } from "@/components/IdDocumentOcrSection";
 
 interface Props {
   memberId: string;
@@ -38,6 +39,16 @@ export default function AdminMemberEditForm({ memberId, member }: Props) {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
 
+  const handleOcrFill = (data: OcrResult) => {
+    setForm((p) => ({
+      ...p,
+      ...(data.name ? { full_name: data.name } : {}),
+      ...(data.dob ? { dob: data.dob } : {}),
+      ...(data.gender ? { gender: data.gender } : {}),
+      ...(data.address ? { address: data.address } : {}),
+    }));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -70,6 +81,8 @@ export default function AdminMemberEditForm({ memberId, member }: Props) {
 
       {open && (
         <div className="mt-4 space-y-3 border-t pt-4">
+          <IdDocumentOcrSection onFill={handleOcrFill} />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 uppercase tracking-wide">Full Name</label>
