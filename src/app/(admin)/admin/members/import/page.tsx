@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, Fragment } from "react";
 import Link from "next/link";
-import { Upload, Download, CheckCircle, XCircle, ArrowLeft, Users } from "lucide-react";
+import { Upload, Download, CheckCircle, XCircle, ArrowLeft, Users, KeyRound } from "lucide-react";
 import type { ValidatedRow, ImportRow } from "@/lib/csv-import";
 
 type Step = 1 | 2 | 3;
@@ -17,11 +17,15 @@ interface PreviewResult {
 interface CommitResult {
   succeeded: number;
   failed: number;
+  login_created: number;
+  login_failed: number;
   results: Array<{
     phone: string;
     full_name: string;
     member_number?: string;
     error?: string;
+    temp_password?: string;
+    login_created: boolean;
   }>;
 }
 
@@ -226,10 +230,8 @@ export default function BulkImportPage() {
             </div>
           )}
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-            <strong>Note:</strong> Imported members are set to <em>active</em> immediately. No auth
-            account is created at import time — use &ldquo;Reset Password&rdquo; on a member&apos;s detail page to
-            grant login access later.
+          <div className="bg-brand-green/5 border border-brand-green/20 rounded-lg p-4 text-sm text-gray-700">
+            <strong>Login accounts are created automatically.</strong> Each imported member gets a temporary password shown at the end of import. Members with an email on file will also receive it by email.
           </div>
         </div>
       )}
@@ -361,35 +363,124 @@ export default function BulkImportPage() {
 
       {/* Step 3 — Result */}
       {step === 3 && commitResult && (
-        <div className="bg-white rounded-xl shadow-sm p-6 space-y-6">
-          <div className="flex flex-col items-center gap-3 py-4">
-            <CheckCircle className="w-16 h-16 text-green-500" />
-            <h2 className="text-2xl font-bold text-gray-900">Import Complete</h2>
-            <p className="text-gray-500 text-center">
-              Successfully imported{" "}
-              <span className="font-semibold text-green-700">{commitResult.succeeded}</span>{" "}
-              member{commitResult.succeeded !== 1 ? "s" : ""}.
-              {commitResult.failed > 0 && (
-                <> <span className="text-red-600 font-semibold">{commitResult.failed}</span> failed.</>
+        <div className="space-y-5">
+          {/* Summary */}
+          <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+            <div className="flex flex-col items-center gap-3 py-2">
+              <CheckCircle className="w-14 h-14 text-green-500" />
+              <h2 className="text-2xl font-bold text-gray-900">Import Complete</h2>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="bg-green-50 rounded-xl p-3">
+                <p className="text-2xl font-bold text-green-700">{commitResult.succeeded}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Members imported</p>
+              </div>
+              <div className="bg-brand-green/5 rounded-xl p-3">
+                <p className="text-2xl font-bold text-brand-green">{commitResult.login_created}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Login accounts created</p>
+              </div>
+              {commitResult.login_failed > 0 && (
+                <div className="bg-amber-50 rounded-xl p-3">
+                  <p className="text-2xl font-bold text-amber-600">{commitResult.login_failed}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Login creation failed</p>
+                </div>
               )}
-            </p>
+              {commitResult.failed > 0 && (
+                <div className="bg-red-50 rounded-xl p-3">
+                  <p className="text-2xl font-bold text-red-600">{commitResult.failed}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Import errors</p>
+                </div>
+              )}
+            </div>
+
+            {commitResult.login_failed > 0 && (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+                <span>{commitResult.login_failed} member{commitResult.login_failed !== 1 ? "s" : ""} could not get a login account — use &ldquo;Create Login Account&rdquo; on their profile page.</span>
+              </div>
+            )}
+
+            {commitResult.failed > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-red-700">Failed rows</h3>
+                <div className="divide-y border border-red-100 rounded-lg overflow-hidden">
+                  {commitResult.results
+                    .filter((r) => r.error)
+                    .map((r, i) => (
+                      <div key={i} className="px-4 py-3 bg-red-50 flex items-start gap-3">
+                        <XCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-red-900">{r.full_name} — {r.phone}</p>
+                          <p className="text-xs text-red-700 mt-0.5">{r.error}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {commitResult.failed > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-red-700">Failed rows</h3>
-              <div className="divide-y border border-red-100 rounded-lg overflow-hidden">
-                {commitResult.results
-                  .filter((r) => r.error)
-                  .map((r, i) => (
-                    <div key={i} className="px-4 py-3 bg-red-50 flex items-start gap-3">
-                      <XCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-red-900">{r.full_name} — {r.phone}</p>
-                        <p className="text-xs text-red-700 mt-0.5">{r.error}</p>
-                      </div>
-                    </div>
-                  ))}
+          {/* Credentials table */}
+          {commitResult.results.some((r) => r.login_created && r.temp_password) && (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-brand-green" />
+                  Member Credentials
+                </h3>
+                <button
+                  onClick={() => {
+                    const header = "Member Number,Name,Phone,Temporary Password\n";
+                    const rows = commitResult.results
+                      .filter((r) => r.login_created && r.temp_password)
+                      .map((r) =>
+                        `${r.member_number ?? ""},${JSON.stringify(r.full_name)},${r.phone},${r.temp_password}`
+                      )
+                      .join("\n");
+                    const blob = new Blob([header + rows], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "member_credentials.csv";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex items-center gap-1.5 text-sm text-brand-green hover:text-green-800 font-medium"
+                >
+                  <Download className="w-4 h-4" />
+                  Download CSV
+                </button>
+              </div>
+
+              <div className="p-4 mb-1">
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs">
+                  Shown once only. Download and share credentials securely. Each member must change their password on first login.
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-y border-gray-100 text-left">
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Member No.</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Temporary Password</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {commitResult.results
+                      .filter((r) => r.login_created && r.temp_password)
+                      .map((r, i) => (
+                        <tr key={i} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 font-mono text-xs text-brand-green font-semibold">{r.member_number}</td>
+                          <td className="px-4 py-3 font-medium text-gray-900">{r.full_name}</td>
+                          <td className="px-4 py-3 text-gray-500 font-mono text-xs">{r.phone}</td>
+                          <td className="px-4 py-3 font-mono text-sm font-semibold tracking-wider text-gray-800 select-all">{r.temp_password}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

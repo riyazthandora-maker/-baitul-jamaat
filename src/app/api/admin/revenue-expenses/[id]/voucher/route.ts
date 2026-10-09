@@ -44,6 +44,7 @@ export async function GET(
     title: "EXPENSE VOUCHER",
     payeeLabel: "PAID TO",
     amountLabel: "AMOUNT PAID",
+    theme: "red" as const,
     payee: { name: contact.name, identifier: null, phone: contact.phone },
     masjid,
   });
