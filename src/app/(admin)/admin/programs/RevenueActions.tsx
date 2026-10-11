@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Plus, X, Loader2, Tag, IndianRupee, CheckCircle2, PenLine } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -146,6 +146,7 @@ function RecordRevenueModal({
 }) {
   const [memberId, setMemberId] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [itemId, setItemId] = useState("");
   const [date, setDate] = useState(today());
   const [amount, setAmount] = useState("");
@@ -154,8 +155,10 @@ function RecordRevenueModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const comboboxRef = useRef<HTMLDivElement>(null);
 
   const activeItems = items.filter((i) => i.is_active);
+  const selectedMember = members.find((m) => m.id === memberId);
 
   const filteredMembers = memberSearch.trim()
     ? members.filter(
@@ -164,6 +167,16 @@ function RecordRevenueModal({
           (m.member_number ?? "").toLowerCase().includes(memberSearch.toLowerCase())
       )
     : members;
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (comboboxRef.current && !comboboxRef.current.contains(e.target as Node)) {
+        setShowMemberDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   function handleItemChange(id: string) {
     setItemId(id);
@@ -202,7 +215,8 @@ function RecordRevenueModal({
   }
 
   function handleReset() {
-    setMemberId(""); setMemberSearch(""); setItemId(""); setDate(today());
+    setMemberId(""); setMemberSearch(""); setShowMemberDropdown(false);
+    setItemId(""); setDate(today());
     setAmount(""); setDescription(""); setShowAddItem(false);
     setError(null); setSuccess(false);
   }
@@ -252,29 +266,72 @@ function RecordRevenueModal({
         ) : (
           <div className="space-y-4">
 
-            {/* Member search + select */}
+            {/* Member combobox */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Member *</label>
-              <input
-                type="search"
-                placeholder="Search by name or member number…"
-                value={memberSearch}
-                onChange={(e) => { setMemberSearch(e.target.value); setMemberId(""); }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green mb-1 placeholder:text-gray-400"
-              />
-              <select
-                value={memberId}
-                onChange={(e) => setMemberId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
-                size={Math.min(6, filteredMembers.length + 1)}
-              >
-                <option value="">— select member —</option>
-                {filteredMembers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.full_name}{m.member_number ? ` · ${m.member_number}` : ""}
-                  </option>
-                ))}
-              </select>
+              <div className="relative" ref={comboboxRef}>
+                <input
+                  type="text"
+                  value={
+                    selectedMember
+                      ? `${selectedMember.full_name}${selectedMember.member_number ? ` · ${selectedMember.member_number}` : ""}`
+                      : memberSearch
+                  }
+                  onChange={(e) => {
+                    setMemberSearch(e.target.value);
+                    setMemberId("");
+                    setShowMemberDropdown(true);
+                  }}
+                  onFocus={() => setShowMemberDropdown(true)}
+                  placeholder="Search by name or member number…"
+                  className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green placeholder:text-gray-400 ${
+                    memberId
+                      ? "border-brand-green/50 bg-brand-green/5 pr-8"
+                      : "border-gray-300 pr-3"
+                  }`}
+                />
+                {memberId && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setMemberId("");
+                      setMemberSearch("");
+                      setShowMemberDropdown(true);
+                    }}
+                    tabIndex={-1}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                {showMemberDropdown && !memberId && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredMembers.length === 0 ? (
+                      <div className="px-3 py-3 text-sm text-gray-400 text-center">No members found</div>
+                    ) : (
+                      filteredMembers.map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setMemberId(m.id);
+                            setMemberSearch("");
+                            setShowMemberDropdown(false);
+                          }}
+                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-brand-green/5 hover:text-brand-green transition-colors"
+                        >
+                          {m.full_name}
+                          {m.member_number && (
+                            <span className="ml-2 text-xs text-gray-400">{m.member_number}</span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Date */}
@@ -302,18 +359,20 @@ function RecordRevenueModal({
                   </button>
                 )}
               </div>
-              <select
-                value={itemId}
-                onChange={(e) => handleItemChange(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
-              >
-                <option value="">— select fee code —</option>
-                {activeItems.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.code} — {i.name} (₹{Number(i.default_amount).toFixed(0)})
-                  </option>
-                ))}
-              </select>
+              {!showAddItem && (
+                <select
+                  value={itemId}
+                  onChange={(e) => handleItemChange(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+                >
+                  <option value="">— select fee code —</option>
+                  {activeItems.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.code} — {i.name} (₹{Number(i.default_amount).toFixed(0)})
+                    </option>
+                  ))}
+                </select>
+              )}
               {showAddItem && (
                 <AddItemInline
                   onAdded={handleItemAdded}
@@ -322,63 +381,68 @@ function RecordRevenueModal({
               )}
             </div>
 
-            {/* Amount */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (₹) *
-                {itemId && (
-                  <span className="ml-1 text-xs font-normal text-gray-400">
-                    — override if different from default
-                  </span>
+            {/* Amount, Description, error, and action buttons — hidden while creating a new fee code */}
+            {!showAddItem && (
+              <>
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount (₹) *
+                    {itemId && (
+                      <span className="ml-1 text-xs font-normal text-gray-400">
+                        — override if different from default
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description <span className="font-normal text-gray-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Additional notes…"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
                 )}
-              </label>
-              <input
-                type="number"
-                min="1"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
-              />
-            </div>
 
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description <span className="font-normal text-gray-400">(optional)</span>
-              </label>
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Additional notes…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
-              />
-            </div>
-
-            {error && (
-              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex-1 py-2.5 rounded-xl border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving || !memberId || !itemId || !date || !amount}
+                    className="flex-1 py-2.5 rounded-xl bg-brand-green text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {saving ? "Saving…" : "Save charge"}
+                  </button>
+                </div>
+              </>
             )}
-
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !memberId || !itemId || !date || !amount}
-                className="flex-1 py-2.5 rounded-xl bg-brand-green text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                {saving ? "Saving…" : "Save charge"}
-              </button>
-            </div>
           </div>
         )}
       </div>

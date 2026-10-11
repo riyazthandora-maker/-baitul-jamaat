@@ -34,6 +34,7 @@ export async function GET(
     title: "DONATION RECEIPT",
     receipt_number: donation.receipt_number,
     created_at: donation.created_at,
+    receipt_date: donation.receipt_date ?? null,
     amount: donation.amount,
     notes: donation.purpose,
     payee: {

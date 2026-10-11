@@ -414,6 +414,7 @@ export interface Database {
           amount: number;
           purpose: string | null;
           receipt_number: string;
+          receipt_date: string;
           voided_at: string | null;
           void_reason: string | null;
         };
@@ -427,6 +428,7 @@ export interface Database {
           amount: number;
           purpose?: string | null;
           receipt_number: string;
+          receipt_date?: string;
           voided_at?: string | null;
           void_reason?: string | null;
         };
@@ -436,6 +438,7 @@ export interface Database {
           donor_email?: string | null;
           amount?: number;
           purpose?: string | null;
+          receipt_date?: string;
           voided_at?: string | null;
           void_reason?: string | null;
         };
