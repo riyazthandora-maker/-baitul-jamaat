@@ -187,7 +187,9 @@ export default async function ReceiptsPage({
                     )}
                   </div>
                   <p className="text-xs text-gray-400">
-                    {d.receipt_number} · {new Date(d.created_at).toLocaleDateString("en-IN")}
+                    {d.receipt_number} · {d.receipt_date
+                      ? new Date(d.receipt_date + "T00:00:00").toLocaleDateString("en-IN")
+                      : new Date(d.created_at).toLocaleDateString("en-IN")}
                     {d.purpose && ` · ${d.purpose}`}
                     {d.donor_phone && ` · ${d.donor_phone}`}
                   </p>

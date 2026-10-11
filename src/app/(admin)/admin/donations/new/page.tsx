@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Heart } from "lucide-react";
 import Link from "next/link";
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function oneMonthAgoStr() {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function NewDonationPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -15,6 +25,7 @@ export default function NewDonationPage() {
     donor_email: "",
     amount: "",
     purpose: "",
+    receipt_date: todayStr(),
   });
 
   function set(field: string, value: string) {
@@ -121,6 +132,23 @@ export default function NewDonationPage() {
               placeholder="e.g. Masjid renovation"
               value={form.purpose}
               onChange={(e) => set("purpose", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Receipt Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              required
+              type="date"
+              min={oneMonthAgoStr()}
+              max={todayStr()}
+              value={form.receipt_date}
+              onChange={(e) => set("receipt_date", e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-brand-green"
             />
           </div>

@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       amount: parsed.data.amount,
       purpose: parsed.data.purpose ?? null,
       receipt_number: receiptNum,
+      receipt_date: parsed.data.receipt_date,
     })
     .select()
     .single();
