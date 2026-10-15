@@ -37,7 +37,8 @@ export const CSV_TEMPLATE_HEADERS: string[] = [
 
 const PHONE_RE = /^(\+91|0)?[6-9]\d{9}$|^\+971[0-9]{8,9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DATE_RE = /^\d{2}-\d{2}-\d{4}$/;
+const DATE_RE_DMY = /^\d{2}-\d{2}-\d{4}$/; // DD-MM-YYYY (CSV input)
+const DATE_RE_ISO = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD (stored after conversion)
 const VALID_GENDERS = ["Male", "Female", "Other"];
 
 export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
@@ -56,10 +57,10 @@ export function validateRow(row: ImportRow, rowNum: number): ValidatedRow {
   }
 
   if (row.date_of_birth && row.date_of_birth.trim()) {
-    if (!DATE_RE.test(row.date_of_birth.trim())) {
-      errors.push("Date of birth must be in DD-MM-YYYY format");
+    if (!DATE_RE_ISO.test(row.date_of_birth.trim())) {
+      errors.push("Date of birth must be in DD-MM-YYYY or YYYY-MM-DD format");
     } else {
-      const d = parseDMY(row.date_of_birth.trim());
+      const d = new Date(row.date_of_birth.trim());
       if (!d || isNaN(d.getTime())) {
         errors.push("Date of birth is not a valid date");
       }
@@ -123,16 +124,14 @@ export function parseCSV(text: string): ImportRow[] {
   });
 }
 
-function parseDMY(s: string): Date | null {
-  const [dd, mm, yyyy] = s.split("-");
-  if (!dd || !mm || !yyyy) return null;
-  return new Date(`${yyyy}-${mm}-${dd}`);
-}
-
 function dmyToIso(s: string): string {
-  if (!s || !DATE_RE.test(s)) return s;
-  const [dd, mm, yyyy] = s.split("-");
-  return `${yyyy}-${mm}-${dd}`;
+  if (!s) return s;
+  if (DATE_RE_DMY.test(s)) {
+    const [dd, mm, yyyy] = s.split("-");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  // Already ISO (YYYY-MM-DD) or unrecognised — pass through for validation
+  return s;
 }
 
 function parseCSVLine(line: string): string[] {
