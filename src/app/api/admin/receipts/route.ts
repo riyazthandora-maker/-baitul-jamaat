@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
     type: "payment",
     amount: parsed.data.amount,
     description: `Payment — ${receiptNum}`,
+    transaction_date: parsed.data.receipt_date,
   });
 
   // Audit log

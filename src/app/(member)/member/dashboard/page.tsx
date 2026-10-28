@@ -5,6 +5,13 @@ import PayButton from "@/components/PayButton";
 import { getMemberBalance } from "@/lib/billing";
 import Link from "next/link";
 
+function fmtEntryDate(entry: { created_at: string; transaction_date: string | null }) {
+  const raw = entry.transaction_date ?? entry.created_at;
+  // DATE strings parse as UTC midnight; add noon to avoid day-off in IST
+  const d = new Date(raw.includes("T") ? raw : `${raw}T12:00:00`);
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default async function MemberDashboard() {
   const supabase = await createClient();
   const {
@@ -32,7 +39,7 @@ export default async function MemberDashboard() {
   const { data: recentEntries } = member
     ? await supabase
         .from("ledger")
-        .select("id, created_at, type, amount, description")
+        .select("id, created_at, transaction_date, type, amount, description")
         .eq("member_id", member.id)
         .is("voided_at", null)
         .order("created_at", { ascending: false })
@@ -123,11 +130,7 @@ export default async function MemberDashboard() {
                         {e.description ?? (e.type === "opening_balance" ? "Opening balance" : e.type)}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {new Date(e.created_at).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
+                        {fmtEntryDate(e)}
                       </p>
                     </div>
                     <p className={`font-semibold flex-shrink-0 ${isDebit ? "text-red-500" : "text-brand-green"}`}>
