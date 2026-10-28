@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
   const month = monthParam ? parseInt(monthParam.split("-")[1]) - 1 : now.getMonth();
   const periodStart = new Date(year, month, 1).toISOString();
   const periodEnd = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+  const monthStr = String(month + 1).padStart(2, "0");
+  const periodStartDate = `${year}-${monthStr}-01`;
+  const periodEndDate = `${year}-${monthStr}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, "0")}`;
   const monthLabel = new Date(year, month, 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
   const { data: masjid } = await supabase
@@ -43,8 +46,10 @@ export async function GET(request: NextRequest) {
     .from("ledger")
     .select("*")
     .eq("masjid_id", masjidId)
-    .gte("created_at", periodStart)
-    .lte("created_at", periodEnd)
+    .or(
+      `and(transaction_date.gte.${periodStartDate},transaction_date.lte.${periodEndDate}),` +
+      `and(transaction_date.is.null,created_at.gte.${periodStart},created_at.lte.${periodEnd})`
+    )
     .is("voided_at", null)
     .order("created_at");
 
@@ -69,6 +74,7 @@ export async function GET(request: NextRequest) {
       balance: charges - discounts - payments,
       entries: entries.map((e) => ({
         created_at: e.created_at,
+        transaction_date: e.transaction_date,
         type: e.type,
         amount: Number(e.amount),
         description: e.description,

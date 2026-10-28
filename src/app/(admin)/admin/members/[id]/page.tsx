@@ -264,7 +264,9 @@ export default async function MemberReviewPage({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium">{r.receipt_number}</p>
                   <p className="text-xs text-gray-400">
-                    {new Date(r.created_at).toLocaleDateString("en-IN")}
+                    {r.receipt_date
+                      ? new Date(r.receipt_date + "T00:00:00").toLocaleDateString("en-IN")
+                      : new Date(r.created_at).toLocaleDateString("en-IN")}
                     {r.notes && ` — ${r.notes}`}
                     {r.void_reason && ` — voided: ${r.void_reason}`}
                   </p>

@@ -19,7 +19,7 @@ export async function GET(
     supabase.from("masjids").select("name, address").eq("id", masjidId).maybeSingle(),
     supabase
       .from("ledger")
-      .select("created_at, type, amount, description")
+      .select("created_at, transaction_date, type, amount, description")
       .eq("member_id", id)
       .eq("masjid_id", masjidId)
       .is("voided_at", null)
@@ -50,6 +50,7 @@ export async function GET(
         balance: charges - discounts - payments,
         entries: rows.map((e) => ({
           created_at: e.created_at,
+          transaction_date: e.transaction_date,
           type: e.type,
           amount: Number(e.amount),
           description: e.description,

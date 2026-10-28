@@ -148,6 +148,7 @@ export async function generateStatementPdf(statement: {
     balance: number; // closing balance (or all-time balance for on-demand)
     entries: Array<{
       created_at: string;
+      transaction_date?: string | null;
       type: string;
       amount: number;
       description: string | null;
@@ -219,7 +220,10 @@ export async function generateStatementPdf(statement: {
       }
       const sign = entry.type === "charge" ? "+" : "−";
       const color = entry.type === "charge" ? rgb(0.7, 0.1, 0.1) : GREEN;
-      page.drawText(new Date(entry.created_at).toLocaleDateString("en-IN"), {
+      const rawDate = entry.transaction_date ?? entry.created_at;
+      // DATE strings parse as UTC midnight; add noon to avoid day-off in IST
+      const entryDate = new Date(rawDate.includes("T") ? rawDate : `${rawDate}T12:00:00`);
+      page.drawText(entryDate.toLocaleDateString("en-IN"), {
         x: 50, y, size: 8, font: regular, color: GRAY,
       });
       page.drawText(entry.description ?? entry.type, {
