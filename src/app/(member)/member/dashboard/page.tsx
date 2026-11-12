@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import MemberSignOutButton from "@/components/MemberSignOutButton";
 import PayButton from "@/components/PayButton";
 import { getMemberBalance } from "@/lib/billing";
+import StatementActions from "@/components/StatementActions";
+import { currentIstMonth } from "@/lib/statements";
 import Link from "next/link";
 
 function fmtEntryDate(entry: { created_at: string; transaction_date: string | null }) {
@@ -111,6 +113,27 @@ export default async function MemberDashboard() {
         {!masjid?.upi_id && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700 text-center">
             Contact your masjid to set up online payment
+          </div>
+        )}
+
+        {/* Monthly statement */}
+        {member && (
+          <div className="bg-white rounded-xl shadow-sm p-5 space-y-3">
+            <div>
+              <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
+                Monthly Statement
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Download or email your statement for the selected month.
+              </p>
+            </div>
+            <StatementActions
+              downloadUrl="/api/member/statement"
+              emailUrl="/api/member/statement/email"
+              memberEmail={member.email}
+              emailConfigured={Boolean(process.env.RESEND_API_KEY)}
+              defaultMonth={currentIstMonth()}
+            />
           </div>
         )}
 

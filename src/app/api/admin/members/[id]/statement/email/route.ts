@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateStatementPdf } from "@/lib/pdf";
+import { generateMemberStatementPdf } from "@/lib/pdf";
 import { sendEmail } from "@/lib/email";
+import { buildStatementEmailHtml, loadMemberStatement } from "@/lib/statements";
 
 export async function POST(
-  _req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -14,64 +15,49 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const masjidId = user.app_metadata?.masjid_id as string;
+  const month = request.nextUrl.searchParams.get("month");
 
-  const [{ data: member }, { data: masjid }, { data: entries }] = await Promise.all([
-    supabase.from("members").select("id, full_name, member_number, phone, email").eq("id", id).maybeSingle(),
-    supabase.from("masjids").select("name, address").eq("id", masjidId).maybeSingle(),
-    supabase
-      .from("ledger")
-      .select("created_at, transaction_date, type, amount, description")
-      .eq("member_id", id)
-      .eq("masjid_id", masjidId)
-      .is("voided_at", null)
-      .order("created_at", { ascending: true }),
-  ]);
+  if (!process.env.RESEND_API_KEY) {
+    return NextResponse.json(
+      { error: "Email is not configured." },
+      { status: 503 }
+    );
+  }
 
-  if (!member) return NextResponse.json({ error: "Member not found" }, { status: 404 });
-  if (!masjid) return NextResponse.json({ error: "Masjid not found" }, { status: 404 });
-  if (!member.email) return NextResponse.json({ error: "Member has no email address" }, { status: 400 });
-
-  const rows = entries ?? [];
-  const charges = rows.filter((e) => e.type === "charge").reduce((s, e) => s + Number(e.amount), 0);
-  const discounts = rows.filter((e) => e.type === "discount").reduce((s, e) => s + Number(e.amount), 0);
-  const payments = rows.filter((e) => e.type === "payment").reduce((s, e) => s + Number(e.amount), 0);
-  const balance = charges - discounts - payments;
-
-  const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-
-  const pdfBytes = await generateStatementPdf({
-    masjid,
-    month: `As of ${today}`,
-    members: [
-      {
-        full_name: member.full_name,
-        member_number: member.member_number,
-        phone: member.phone,
-        charges,
-        discounts,
-        payments,
-        balance,
-        entries: rows.map((e) => ({
-          created_at: e.created_at,
-          transaction_date: e.transaction_date,
-          type: e.type,
-          amount: Number(e.amount),
-          description: e.description,
-        })),
-      },
-    ],
+  const statement = await loadMemberStatement(supabase, {
+    masjidId,
+    memberId: id,
+    month,
   });
 
-  await sendEmail({
-    to: member.email,
-    subject: `Account Statement — ${masjid.name}`,
-    html: `<p>Dear ${member.full_name},</p>
-<p>Please find your account statement from <strong>${masjid.name}</strong> as of ${today}.</p>
-${balance > 0 ? `<p>Outstanding balance: <strong>₹${balance.toFixed(2)}</strong></p>` : "<p>Your account is fully paid up.</p>"}
-<p>Please contact the masjid office if you have any questions.</p>`,
-    attachment: { filename: `statement-${member.member_number ?? id}.pdf`, content: Buffer.from(pdfBytes) },
+  if (!statement) {
+    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  }
+  if (!statement.member.email) {
+    return NextResponse.json(
+      { error: "Member has no email address" },
+      { status: 400 }
+    );
+  }
+
+  const pdfBytes = await generateMemberStatementPdf(statement);
+  const result = await sendEmail({
+    to: statement.member.email,
+    subject: `Account Statement — ${statement.monthLabel} — ${statement.masjid.name}`,
+    html: buildStatementEmailHtml(statement),
+    attachment: {
+      filename: `statement-${statement.member.member_number ?? id}-${statement.month}.pdf`,
+      content: Buffer.from(pdfBytes),
+    },
     masjid_id: masjidId,
   });
+
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: result.error ?? "Failed to send email." },
+      { status: 502 }
+    );
+  }
 
   return NextResponse.json({ sent: true });
 }
