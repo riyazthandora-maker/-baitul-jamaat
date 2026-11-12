@@ -9,6 +9,7 @@ import AddDiscountForm from "@/components/AddDiscountForm";
 import OpeningBalanceForm from "@/components/OpeningBalanceForm";
 import StatementActions from "@/components/StatementActions";
 import LedgerList from "@/components/LedgerList";
+import { currentIstMonth } from "@/lib/statements";
 import MemberStatusToggle from "@/components/MemberStatusToggle";
 import MemberResetPasswordButton from "@/components/MemberResetPasswordButton";
 import AdminMemberEditForm from "@/components/AdminMemberEditForm";
@@ -213,6 +214,27 @@ export default async function MemberReviewPage({
         </div>
       )}
 
+      {/* Monthly statement */}
+      {member.status !== "pending" && (
+        <div className="bg-white rounded-xl shadow-sm p-5 space-y-3">
+          <div>
+            <h2 className="font-semibold text-gray-700 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-brand-green" /> Monthly Statement
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Download or email the member&apos;s statement for the selected month.
+            </p>
+          </div>
+          <StatementActions
+            downloadUrl={`/api/admin/members/${id}/statement`}
+            emailUrl={`/api/admin/members/${id}/statement/email`}
+            memberEmail={member.email}
+            emailConfigured={Boolean(process.env.RESEND_API_KEY)}
+            defaultMonth={currentIstMonth()}
+          />
+        </div>
+      )}
+
       {/* Add discount */}
       {member.status === "active" && (
         <AddDiscountForm memberId={id} />
@@ -236,12 +258,9 @@ export default async function MemberReviewPage({
       {/* Ledger */}
       {ledgerEntries && ledgerEntries.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm p-5 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <h2 className="font-semibold text-gray-700 flex items-center gap-2">
-              <TrendingDown className="w-4 h-4 text-brand-green" /> Ledger
-            </h2>
-            <StatementActions memberId={id} memberEmail={member.email} />
-          </div>
+          <h2 className="font-semibold text-gray-700 flex items-center gap-2">
+            <TrendingDown className="w-4 h-4 text-brand-green" /> Ledger
+          </h2>
           <LedgerList
             entries={(ledgerEntries ?? []).map((e) => ({
               ...e,

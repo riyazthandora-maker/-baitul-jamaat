@@ -1,4 +1,11 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import {
+  PDFDocument,
+  rgb,
+  StandardFonts,
+  type PDFFont,
+  type PDFPage,
+} from "pdf-lib";
+import type { MemberStatement } from "@/lib/statements";
 
 const GREEN = rgb(0.102, 0.42, 0.235); // #1a6b3c
 const RED   = rgb(0.72, 0.11, 0.11);   // #b81c1c
@@ -214,7 +221,7 @@ export async function generateStatementPdf(statement: {
     }
 
     // Ledger entries for the period
-    for (const entry of member.entries.slice(0, 8)) {
+    for (const entry of member.entries) {
       if (y < 80) {
         ({ page, width, y } = addPage());
       }
@@ -357,6 +364,478 @@ export async function generateFamiliesReportPdf(report: {
       y -= 13;
     }
   }
+
+  return doc.save();
+}
+
+// ── Member monthly statement ──────────────────────────────────────────────
+
+const WHITE = rgb(1, 1, 1);
+const LIGHT_GREEN = rgb(0.94, 0.98, 0.95);
+const ZEBRA = rgb(0.975, 0.985, 0.978);
+
+/** StandardFonts are WinAnsi-only; replace anything it cannot encode instead of throwing. */
+function sanitizeForFont(text: string, font: PDFFont): string {
+  let safe = "";
+  for (const char of Array.from(text)) {
+    try {
+      font.encodeText(char);
+      safe += char;
+    } catch {
+      safe += "?";
+    }
+  }
+  return safe;
+}
+
+function wrapText(
+  text: string,
+  font: PDFFont,
+  size: number,
+  maxWidth: number,
+  maxLines = 2
+): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+    if (current) lines.push(current);
+    current = "";
+
+    if (font.widthOfTextAtSize(word, size) <= maxWidth) {
+      current = word;
+      continue;
+    }
+
+    let chunk = "";
+    for (const char of Array.from(word)) {
+      const next = chunk + char;
+      if (font.widthOfTextAtSize(next, size) <= maxWidth) {
+        chunk = next;
+      } else {
+        if (chunk) lines.push(chunk);
+        chunk = char;
+      }
+    }
+    current = chunk;
+  }
+  if (current) lines.push(current);
+
+  if (lines.length <= maxLines) return lines;
+  const trimmed = lines.slice(0, maxLines);
+  let last = trimmed[maxLines - 1];
+  while (last.length > 0 && font.widthOfTextAtSize(`${last}…`, size) > maxWidth) {
+    last = last.slice(0, -1);
+  }
+  trimmed[maxLines - 1] = `${last}…`;
+  return trimmed;
+}
+
+function truncateToWidth(
+  text: string,
+  font: PDFFont,
+  size: number,
+  maxWidth: number
+): string {
+  if (font.widthOfTextAtSize(text, size) <= maxWidth) return text;
+  let result = text;
+  while (result.length > 0 && font.widthOfTextAtSize(`${result}…`, size) > maxWidth) {
+    result = result.slice(0, -1);
+  }
+  return `${result}…`;
+}
+
+function drawRight(
+  page: PDFPage,
+  text: string,
+  rightX: number,
+  y: number,
+  size: number,
+  font: PDFFont,
+  color: ReturnType<typeof rgb>
+) {
+  page.drawText(text, {
+    x: rightX - font.widthOfTextAtSize(text, size),
+    y,
+    size,
+    font,
+    color,
+  });
+}
+
+function money(amount: number): string {
+  const abs = Math.abs(amount);
+  return `${amount < 0 ? "-" : ""}Rs. ${abs.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function displayDate(date: string): string {
+  // Date-only strings parse as UTC midnight; add noon to avoid a day shift in IST.
+  return new Date(`${date}T12:00:00`).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export async function generateMemberStatementPdf(
+  statement: MemberStatement
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+
+  const WIDTH = 595;
+  const HEIGHT = 842;
+  const MARGIN = 40;
+  const CONTENT_WIDTH = WIDTH - MARGIN * 2;
+
+  const DATE_X = MARGIN + 6;
+  const DESC_X = MARGIN + 86;
+  const DEBIT_RIGHT = MARGIN + CONTENT_WIDTH - 150;
+  const CREDIT_RIGHT = MARGIN + CONTENT_WIDTH - 75;
+  const BALANCE_RIGHT = MARGIN + CONTENT_WIDTH - 6;
+  const DESC_WIDTH = DEBIT_RIGHT - DESC_X - 10;
+
+  const generatedOn = new Date().toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const pages: PDFPage[] = [];
+
+  function drawMasthead(page: PDFPage) {
+    page.drawRectangle({
+      x: 0,
+      y: HEIGHT - 64,
+      width: WIDTH,
+      height: 64,
+      color: GREEN,
+    });
+    const name = sanitizeForFont(statement.masjid.name, bold);
+    page.drawText(truncateToWidth(name, bold, 14, 300), {
+      x: MARGIN,
+      y: HEIGHT - 26,
+      size: 14,
+      font: bold,
+      color: WHITE,
+    });
+    const address = sanitizeForFont(statement.masjid.address, regular);
+    page.drawText(truncateToWidth(address, regular, 8, 300), {
+      x: MARGIN,
+      y: HEIGHT - 40,
+      size: 8,
+      font: regular,
+      color: GOLD,
+    });
+    const phone = sanitizeForFont(`Ph: ${statement.masjid.phone}`, regular);
+    page.drawText(phone, {
+      x: MARGIN,
+      y: HEIGHT - 51,
+      size: 8,
+      font: regular,
+      color: GOLD,
+    });
+
+    const title = "MEMBER STATEMENT";
+    drawRight(page, title, WIDTH - MARGIN, HEIGHT - 25, 11, bold, WHITE);
+    drawRight(
+      page,
+      sanitizeForFont(statement.monthLabel, bold),
+      WIDTH - MARGIN,
+      HEIGHT - 39,
+      9,
+      bold,
+      GOLD
+    );
+    drawRight(
+      page,
+      sanitizeForFont(`Generated ${generatedOn}`, regular),
+      WIDTH - MARGIN,
+      HEIGHT - 50,
+      7,
+      regular,
+      GOLD
+    );
+  }
+
+  function addPage(): PDFPage {
+    const page = doc.addPage([WIDTH, HEIGHT]);
+    pages.push(page);
+    drawMasthead(page);
+    return page;
+  }
+
+  function drawTableHeader(page: PDFPage, top: number): number {
+    page.drawRectangle({
+      x: MARGIN,
+      y: top - 20,
+      width: CONTENT_WIDTH,
+      height: 20,
+      color: GREEN,
+    });
+    const baseline = top - 13.5;
+    page.drawText("DATE", { x: DATE_X, y: baseline, size: 7.5, font: bold, color: WHITE });
+    page.drawText("DESCRIPTION", { x: DESC_X, y: baseline, size: 7.5, font: bold, color: WHITE });
+    drawRight(page, "DEBIT", DEBIT_RIGHT, baseline, 7.5, bold, WHITE);
+    drawRight(page, "CREDIT", CREDIT_RIGHT, baseline, 7.5, bold, WHITE);
+    drawRight(page, "BALANCE", BALANCE_RIGHT, baseline, 7.5, bold, WHITE);
+    return top - 24;
+  }
+
+  let page = addPage();
+  let y = HEIGHT - 84;
+
+  // ── Member details panel ──
+  const panelHeight = 66;
+  page.drawRectangle({
+    x: MARGIN,
+    y: y - panelHeight,
+    width: CONTENT_WIDTH,
+    height: panelHeight,
+    color: LIGHT_GREEN,
+  });
+  const col2 = WIDTH / 2 + 10;
+
+  page.drawText("MEMBER", {
+    x: MARGIN + 10,
+    y: y - 14,
+    size: 6.5,
+    font: bold,
+    color: GRAY,
+  });
+  const memberName = sanitizeForFont(statement.member.full_name, bold);
+  page.drawText(truncateToWidth(memberName, bold, 11, col2 - MARGIN - 24), {
+    x: MARGIN + 10,
+    y: y - 29,
+    size: 11,
+    font: bold,
+    color: GREEN,
+  });
+
+  const memberMeta = [
+    statement.member.member_number ?? "",
+    statement.member.phone ? `Ph: ${statement.member.phone}` : "",
+  ]
+    .filter(Boolean)
+    .join("    ");
+  if (memberMeta) {
+    page.drawText(sanitizeForFont(memberMeta, regular), {
+      x: MARGIN + 10,
+      y: y - 43,
+      size: 8,
+      font: regular,
+      color: GRAY,
+    });
+  }
+  if (statement.member.email) {
+    page.drawText(
+      truncateToWidth(
+        sanitizeForFont(statement.member.email, regular),
+        regular,
+        8,
+        col2 - MARGIN - 24
+      ),
+      { x: MARGIN + 10, y: y - 55, size: 8, font: regular, color: GRAY }
+    );
+  }
+
+  page.drawText("STATEMENT PERIOD", {
+    x: col2,
+    y: y - 14,
+    size: 6.5,
+    font: bold,
+    color: GRAY,
+  });
+  page.drawText(sanitizeForFont(statement.monthLabel, bold), {
+    x: col2,
+    y: y - 29,
+    size: 11,
+    font: bold,
+    color: GREEN,
+  });
+  page.drawText(
+    sanitizeForFont(`Generated ${generatedOn}`, regular),
+    { x: col2, y: y - 43, size: 8, font: regular, color: GRAY }
+  );
+
+  y -= panelHeight + 12;
+
+  // ── Summary strip ──
+  const cells = [
+    { label: "OPENING BALANCE", value: statement.openingBalance, redWhenPositive: false },
+    { label: "CHARGES", value: statement.charges, redWhenPositive: false },
+    { label: "DISCOUNTS", value: statement.discounts, redWhenPositive: false },
+    { label: "PAYMENTS", value: statement.payments, redWhenPositive: false },
+    { label: "CLOSING BALANCE", value: statement.closingBalance, redWhenPositive: true },
+  ];
+  const cellWidth = CONTENT_WIDTH / cells.length;
+  const summaryHeight = 46;
+  page.drawRectangle({
+    x: MARGIN,
+    y: y - summaryHeight,
+    width: CONTENT_WIDTH,
+    height: summaryHeight,
+    color: LIGHT_GREEN,
+  });
+  cells.forEach((cell, index) => {
+    const cellX = MARGIN + cellWidth * index;
+    if (index > 0) {
+      page.drawLine({
+        start: { x: cellX, y: y - summaryHeight },
+        end: { x: cellX, y },
+        thickness: 0.5,
+        color: rgb(0.85, 0.9, 0.86),
+      });
+    }
+    page.drawText(cell.label, {
+      x: cellX + 6,
+      y: y - 14,
+      size: 6,
+      font: bold,
+      color: GRAY,
+    });
+    const text = money(cell.value);
+    let size = 9;
+    while (size > 6.5 && bold.widthOfTextAtSize(text, size) > cellWidth - 12) {
+      size -= 0.5;
+    }
+    const color = cell.redWhenPositive && cell.value > 0 ? RED : GREEN;
+    page.drawText(text, {
+      x: cellX + 6,
+      y: y - 31,
+      size,
+      font: bold,
+      color,
+    });
+  });
+  y -= summaryHeight + 14;
+
+  // ── Ledger table ──
+  y = drawTableHeader(page, y);
+
+  if (statement.entries.length === 0) {
+    page.drawText("No transactions this month.", {
+      x: MARGIN + 6,
+      y: y - 8,
+      size: 9,
+      font: regular,
+      color: GRAY,
+    });
+    y -= 28;
+  }
+
+  statement.entries.forEach((entry, index) => {
+    const description = sanitizeForFont(entry.description, regular);
+    const descLines = wrapText(description, regular, 8, DESC_WIDTH, 2);
+    const rowHeight = descLines.length > 1 ? 23 : 14;
+
+    if (y - rowHeight < 66) {
+      page = addPage();
+      y = drawTableHeader(page, HEIGHT - 84);
+    }
+
+    if (index % 2 === 1) {
+      page.drawRectangle({
+        x: MARGIN,
+        y: y - 6,
+        width: CONTENT_WIDTH,
+        height: rowHeight,
+        color: ZEBRA,
+      });
+    }
+
+    page.drawText(sanitizeForFont(displayDate(entry.date), regular), {
+      x: DATE_X,
+      y,
+      size: 8,
+      font: regular,
+      color: GRAY,
+    });
+    descLines.forEach((line, lineIndex) => {
+      page.drawText(line, {
+        x: DESC_X,
+        y: y - lineIndex * 10,
+        size: 8,
+        font: regular,
+        color: BLACK,
+      });
+    });
+    if (entry.debit > 0) {
+      drawRight(page, money(entry.debit), DEBIT_RIGHT, y, 8, regular, RED);
+    }
+    if (entry.credit > 0) {
+      drawRight(page, money(entry.credit), CREDIT_RIGHT, y, 8, regular, GREEN);
+    }
+    const balanceColor = entry.balance > 0 ? RED : GREEN;
+    drawRight(page, money(entry.balance), BALANCE_RIGHT, y, 8, bold, balanceColor);
+
+    y -= rowHeight;
+  });
+
+  // ── Closing balance ──
+  if (y < 110) {
+    page = addPage();
+    y = HEIGHT - 84;
+  }
+  y -= 4;
+  drawHRule(page, y, WIDTH, rgb(0.85, 0.9, 0.86));
+  y -= 18;
+  page.drawText("CLOSING BALANCE (END OF MONTH)", {
+    x: DATE_X,
+    y,
+    size: 9,
+    font: bold,
+    color: GREEN,
+  });
+  drawRight(
+    page,
+    money(statement.closingBalance),
+    BALANCE_RIGHT,
+    y,
+    11,
+    bold,
+    statement.closingBalance > 0 ? RED : GREEN
+  );
+
+  // ── Footer on every page ──
+  pages.forEach((p, index) => {
+    p.drawLine({
+      start: { x: MARGIN, y: 46 },
+      end: { x: WIDTH - MARGIN, y: 46 },
+      thickness: 0.5,
+      color: GRAY,
+    });
+    const left = sanitizeForFont(
+      `Computer-generated statement - ${statement.masjid.name}`,
+      regular
+    );
+    p.drawText(left, {
+      x: MARGIN,
+      y: 34,
+      size: 7,
+      font: regular,
+      color: GRAY,
+    });
+    drawRight(
+      p,
+      `Page ${index + 1} of ${pages.length}`,
+      WIDTH - MARGIN,
+      34,
+      7,
+      regular,
+      GRAY
+    );
+  });
 
   return doc.save();
 }
