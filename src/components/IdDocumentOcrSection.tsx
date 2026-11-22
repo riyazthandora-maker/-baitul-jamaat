@@ -2,6 +2,12 @@
 
 import { useState, useRef } from "react";
 import { ScanLine, Upload, X, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  MAX_UPLOAD_BYTES,
+  isImageFile,
+  isPdfFile,
+  prepareImageFile,
+} from "@/lib/image";
 
 export interface OcrResult {
   name: string | null;
@@ -21,8 +27,48 @@ export default function IdDocumentOcrSection({ onFill }: Props) {
   const [frontFile, setFrontFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filled, setFilled] = useState(false);
+
+  // Shrink images over the cap (keeping resolution for OCR) and reject PDFs
+  // that can't be resampled client-side.
+  async function handleSelect(
+    side: "front" | "back",
+    file: File,
+    input: HTMLInputElement
+  ) {
+    setError(null);
+    let prepared: File | null = file;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      if (isPdfFile(file)) {
+        setError(`"${file.name}" is too large. Please choose a document under 4 MB.`);
+        input.value = "";
+        return;
+      }
+      if (isImageFile(file)) {
+        setPreparing(true);
+        try {
+          prepared = await prepareImageFile(file, { maxDimension: 2400 });
+        } catch {
+          setError("Could not process that document. Please try another file.");
+          prepared = null;
+        } finally {
+          setPreparing(false);
+        }
+      }
+    }
+    if (!prepared) {
+      input.value = "";
+      return;
+    }
+    if (side === "front") {
+      setFrontFile(prepared);
+      setFilled(false);
+    } else {
+      setBackFile(prepared);
+    }
+  }
 
   const clearFront = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,8 +155,9 @@ export default function IdDocumentOcrSection({ onFill }: Props) {
             accept="image/*,application/pdf"
             className="hidden"
             onChange={(e) => {
+              const input = e.currentTarget;
               const f = e.target.files?.[0];
-              if (f) { setFrontFile(f); setFilled(false); setError(null); }
+              if (f) void handleSelect("front", f, input);
             }}
           />
         </div>
@@ -144,23 +191,27 @@ export default function IdDocumentOcrSection({ onFill }: Props) {
             type="file"
             accept="image/*,application/pdf"
             className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) setBackFile(f); }}
+            onChange={(e) => {
+              const input = e.currentTarget;
+              const f = e.target.files?.[0];
+              if (f) void handleSelect("back", f, input);
+            }}
           />
         </div>
       </div>
 
       <button
         type="button"
-        disabled={!frontFile || loading}
+        disabled={!frontFile || loading || preparing}
         onClick={handleExtract}
         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-green text-white text-sm font-medium hover:bg-green-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        {loading ? (
+        {loading || preparing ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <ScanLine className="w-4 h-4" />
         )}
-        {loading ? "Extracting…" : "Extract & Fill"}
+        {preparing ? "Processing…" : loading ? "Extracting…" : "Extract & Fill"}
       </button>
 
       {error && (

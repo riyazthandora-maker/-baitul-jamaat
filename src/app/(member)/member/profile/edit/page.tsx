@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, Clock, XCircle } from "lucide-react";
 import { QUALIFICATION_OPTIONS } from "@/lib/member-types";
+import { prepareImageFile } from "@/lib/image";
 import IdDocumentOcrSection, { OcrResult } from "@/components/IdDocumentOcrSection";
 
 interface MemberData {
@@ -39,6 +40,7 @@ export default function MemberEditProfilePage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -92,11 +94,21 @@ export default function MemberEditProfilePage() {
     }));
   };
 
-  const handlePhotoChange = (file: File) => {
-    setPhotoFile(file);
+  const handlePhotoChange = async (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => setPhotoPreview(e.target?.result as string);
     reader.readAsDataURL(file);
+
+    setPreparingPhoto(true);
+    setError(null);
+    try {
+      setPhotoFile(await prepareImageFile(file));
+    } catch {
+      setPhotoFile(null);
+      setError("Could not process that image. Please choose a JPEG or PNG.");
+    } finally {
+      setPreparingPhoto(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -324,10 +336,10 @@ export default function MemberEditProfilePage() {
 
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || preparingPhoto}
                 className="w-full py-3 rounded-lg bg-brand-green text-white font-semibold text-sm hover:bg-green-800 transition-colors disabled:opacity-50"
               >
-                {saving ? "Submitting…" : "Submit for Approval"}
+                {preparingPhoto ? "Processing photo…" : saving ? "Submitting…" : "Submit for Approval"}
               </button>
 
               <p className="text-xs text-gray-400 text-center">
