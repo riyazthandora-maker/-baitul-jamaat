@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { normalizeIdType } from "@/lib/member-types";
 
@@ -91,13 +92,25 @@ export async function POST(request: NextRequest) {
   let newPhotoUrl: string | null = null;
   const photoFile = formData.get("photo") as File | null;
   if (photoFile && photoFile.size > 0) {
+    // adminSupabase is an @supabase/ssr client; when a user session is present
+    // it authenticates as that user, so storage writes hit the member RLS policy
+    // (which has no INSERT). Use a plain service-role client to bypass it.
+    const storageClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     const path = `${masjidId}/${member.id}/profile_change.${ext(photoFile)}`;
-    const { error: uploadErr } = await adminSupabase.storage
+    const bytes = await photoFile.arrayBuffer();
+    const { error: uploadErr } = await storageClient.storage
       .from("member-documents")
-      .upload(path, photoFile, { upsert: true, contentType: photoFile.type });
+      .upload(path, bytes, { upsert: true, contentType: photoFile.type });
 
     if (uploadErr) {
-      return NextResponse.json({ error: "Photo upload failed" }, { status: 500 });
+      console.error("[profile-change] upload error:", path, uploadErr.message);
+      return NextResponse.json(
+        { error: `Photo upload failed: ${uploadErr.message}` },
+        { status: 500 }
+      );
     }
     newPhotoUrl = path;
   }

@@ -15,6 +15,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { QUALIFICATION_OPTIONS } from "@/lib/member-types";
+import {
+  MAX_UPLOAD_BYTES,
+  isImageFile,
+  isPdfFile,
+  prepareImageFile,
+} from "@/lib/image";
 
 type OcrResult = {
   name: string | null;
@@ -45,6 +51,7 @@ export default function RegisterPage() {
   const [idBackFile, setIdBackFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
 
   // Form fields
   const [form, setForm] = useState({
@@ -81,6 +88,7 @@ export default function RegisterPage() {
     setIdBackFile(null);
     setPhotoFile(null);
     setPhotoPreview(null);
+    setPreparingPhoto(false);
     setForm({
       full_name: "",
       phone: "",
@@ -137,29 +145,70 @@ export default function RegisterPage() {
     [code]
   );
 
+  // Keep ID files under the upload cap: shrink images (preserving enough
+  // resolution for OCR), reject PDFs that are too large to resample.
+  async function prepareIdFile(file: File): Promise<File | null> {
+    if (file.size <= MAX_UPLOAD_BYTES) return file;
+    if (isPdfFile(file)) {
+      setOcrError(`"${file.name}" is too large. Please upload a document under 4 MB.`);
+      return null;
+    }
+    if (isImageFile(file)) {
+      try {
+        return await prepareImageFile(file, { maxDimension: 2400 });
+      } catch {
+        setOcrError("Could not process that document. Please try another file.");
+        return null;
+      }
+    }
+    return file;
+  }
+
   async function handleFrontChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.currentTarget;
     const file = e.target.files?.[0];
     if (!file) return;
-    setIdFrontFile(file);
-    await runOcr(file, idBackFile);
+    const prepared = await prepareIdFile(file);
+    if (!prepared) {
+      input.value = "";
+      return;
+    }
+    setIdFrontFile(prepared);
+    await runOcr(prepared, idBackFile);
   }
 
   async function handleBackChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.currentTarget;
     const file = e.target.files?.[0];
     if (!file) return;
-    setIdBackFile(file);
+    const prepared = await prepareIdFile(file);
+    if (!prepared) {
+      input.value = "";
+      return;
+    }
+    setIdBackFile(prepared);
     if (idFrontFile) {
-      await runOcr(idFrontFile, file);
+      await runOcr(idFrontFile, prepared);
     }
   }
 
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPhotoFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setPhotoPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
+
+    setPreparingPhoto(true);
+    setError(null);
+    try {
+      setPhotoFile(await prepareImageFile(file));
+    } catch {
+      setPhotoFile(null);
+      setError("Could not process that photo. Please choose a JPEG or PNG.");
+    } finally {
+      setPreparingPhoto(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -539,10 +588,14 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || preparingPhoto}
           className="w-full bg-brand-green text-white py-4 rounded-xl text-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
         >
-          {submitting ? (
+          {preparingPhoto ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" /> Processing photo…
+            </>
+          ) : submitting ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" /> Submitting…
             </>
